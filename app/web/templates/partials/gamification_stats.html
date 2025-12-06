@@ -1,0 +1,54 @@
+<div id="gamification-stats" class="gamification-stats fade-in">
+    <div class="gamification-header">
+        <div class="level-display">
+            <span class="level-emoji">{{ state.level_emoji|default('🌱') }}</span>
+            <div class="level-info">
+                <span class="level-name">{{ state.level_name|default('Tidy Novice') }}</span>
+                <span class="level-number">Level {{ state.level|default(1) }}</span>
+            </div>
+        </div>
+        <div class="xp-display">
+            <span class="xp-total">{{ state.xp_total|default(0) }} XP</span>
+        </div>
+    </div>
+    
+    <div class="xp-progress">
+        <div class="xp-progress-bar">
+            <div class="xp-progress-fill" style="width: {{ state.xp_progress_percent|default(0) }}%"></div>
+        </div>
+        <span class="xp-to-next">{{ state.xp_to_next_level|default(250) }} XP to next level</span>
+    </div>
+    
+    {% if state.current_streak and state.current_streak > 0 %}
+    <div class="streak-display">
+        <span class="streak-icon">🔥</span>
+        <span class="streak-count">{{ state.current_streak }} day streak</span>
+    </div>
+    {% endif %}
+    
+    {% if state.daily_challenge %}
+    <div class="daily-challenge">
+        <h4>{{ state.daily_challenge.emoji }} Daily Challenge</h4>
+        <p class="challenge-name">{{ state.daily_challenge.name }}</p>
+        <p class="challenge-description">{{ state.daily_challenge.description }}</p>
+        <span class="challenge-reward">+{{ state.daily_challenge.xp_reward }} XP</span>
+        {% if state.daily_challenge_completed %}
+        <span class="challenge-completed">✅ Completed!</span>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    {% if state.achievements_unlocked and state.achievements_unlocked|length > 0 %}
+    <div class="achievements-section">
+        <h4>🏆 Achievements</h4>
+        <div class="achievements-grid">
+            {% for achievement in state.achievements_unlocked %}
+            <div class="achievement-badge">
+                <span class="achievement-emoji">{{ achievement.emoji }}</span>
+                <span class="achievement-name">{{ achievement.name }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
