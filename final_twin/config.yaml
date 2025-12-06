@@ -1,0 +1,10 @@
+name: "Final Twin"
+version: "0.1.0"
+slug: "final_twin"
+description: "Final Twin / Luek Twin Sync add-on for Home Assistant"
+arch:
+  - amd64
+  - armv7
+  - aarch64
+startup: "application"
+url: "https://github.com/kozzzzzzy/final-twin"
