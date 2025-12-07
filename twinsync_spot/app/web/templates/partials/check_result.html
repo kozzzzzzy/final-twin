@@ -1,0 +1,82 @@
+<div id="check-result" class="check-result fade-in">
+    {% if check.rich_analysis and check.rich_analysis.personality_message %}
+    <div class="personality-message">
+        <p class="personality-quote">"{{ check.rich_analysis.personality_message }}"</p>
+    </div>
+    {% endif %}
+    
+    {% if check.rich_analysis and check.rich_analysis.one_thing_focus %}
+    <div class="one-thing-focus">
+        <h3>🎯 One Thing Focus</h3>
+        <p>{{ check.rich_analysis.one_thing_focus }}</p>
+    </div>
+    {% endif %}
+    
+    {% if check.to_sort and check.to_sort|length > 0 %}
+    <div class="check-list to-sort-list">
+        <h3>To Sort 
+            {% if check.rich_analysis and check.rich_analysis.time_estimate %}
+            <span class="time-estimate">⏱️ {{ check.rich_analysis.time_estimate }}</span>
+            {% endif %}
+        </h3>
+        <ul>
+            {% for item in check.to_sort %}
+            <li class="priority-{{ item.priority|default('normal') }}">
+                <span class="item-priority-dot"></span>
+                {{ item.item if item.item is defined else item }}
+                {% if item.location %}
+                <span class="item-location">({{ item.location }})</span>
+                {% endif %}
+                {% if item.recurring %}
+                <span class="recurring-badge">🔄 {{ item.recurrence_count|default('') }}x</span>
+                {% endif %}
+                {% if item.quick_fix %}
+                <span class="quick-fix-tip">💡 {{ item.quick_fix }}</span>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+    
+    {% if check.rich_analysis and check.rich_analysis.quick_wins and check.rich_analysis.quick_wins|length > 0 %}
+    <div class="quick-wins-section">
+        <h3>⚡ Quick Wins</h3>
+        <ul class="quick-wins-list">
+            {% for win in check.rich_analysis.quick_wins %}
+            <li class="quick-win impact-{{ win.impact|default('medium') }}">
+                <span class="quick-win-action">{{ win.action }}</span>
+                <span class="quick-win-time">⏱️ {{ win.time_estimate|default('1 min') }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+    
+    {% if check.looking_good and check.looking_good|length > 0 %}
+    <div class="check-list looking-good-list">
+        <h3>Looking Good</h3>
+        <ul>
+            {% for item in check.looking_good %}
+            <li>✓ {{ item.item if item.item is defined else item }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+    
+    {% if check.notes and check.notes.main %}
+    <div class="check-notes">
+        <p class="notes-main">{{ check.notes.main }}</p>
+        {% if check.notes.pattern %}
+        <p class="notes-pattern">📊 {{ check.notes.pattern }}</p>
+        {% endif %}
+        {% if check.notes.encouragement %}
+        <p class="notes-encouragement">💪 {{ check.notes.encouragement }}</p>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    {% if check.xp_earned %}
+    <div class="xp-earned-badge">+{{ check.xp_earned }} XP</div>
+    {% endif %}
+</div>

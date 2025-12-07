@@ -1,0 +1,1 @@
+"""TwinSync Spot application."""

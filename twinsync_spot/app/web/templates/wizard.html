@@ -1,0 +1,1237 @@
+{% extends "base.html" %}
+
+{% block title %}Setup Wizard - TwinSync Spot{% endblock %}
+
+{% block content %}
+<style>
+/* Wizard Styles */
+.wizard-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.wizard-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.wizard-progress {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+}
+
+.wizard-step-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--color-border);
+    transition: all 0.3s ease;
+}
+
+.wizard-step-indicator.active {
+    background: var(--color-primary);
+    transform: scale(1.2);
+}
+
+.wizard-step-indicator.completed {
+    background: var(--color-success);
+}
+
+.wizard-content {
+    background: var(--color-surface);
+    border-radius: var(--radius);
+    padding: 2rem;
+    min-height: 400px;
+}
+
+.wizard-step {
+    display: none;
+    animation: fadeIn 0.3s ease;
+}
+
+.wizard-step.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.wizard-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--color-border);
+}
+
+.wizard-actions .btn {
+    min-width: 120px;
+}
+
+/* Welcome Step */
+.welcome-hero {
+    text-align: center;
+    padding: 1rem 0;
+}
+
+.welcome-emoji {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.welcome-title {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+.welcome-description {
+    color: var(--color-text-muted);
+    font-size: 1.1rem;
+    max-width: 500px;
+    margin: 0 auto 2rem;
+}
+
+.feature-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.feature-card {
+    background: var(--color-bg);
+    padding: 1rem;
+    border-radius: var(--radius);
+    text-align: center;
+}
+
+.feature-card-emoji {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.feature-card-title {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.feature-card-desc {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+
+/* Personality Picker */
+.personality-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+}
+
+.personality-card {
+    background: var(--color-bg);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.personality-card:hover {
+    border-color: var(--color-text-muted);
+    transform: translateY(-2px);
+}
+
+.personality-card.selected {
+    border-color: var(--color-primary);
+    background: rgba(45, 212, 191, 0.1);
+}
+
+.personality-emoji {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.personality-name {
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin-bottom: 0.25rem;
+}
+
+.personality-desc {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    margin-bottom: 0.75rem;
+}
+
+.personality-quote {
+    font-size: 0.8rem;
+    font-style: italic;
+    color: var(--color-text-muted);
+    background: var(--color-surface);
+    padding: 0.5rem;
+    border-radius: 4px;
+    border-left: 3px solid var(--color-primary);
+}
+
+/* Connection Form */
+.connection-form .form-group {
+    margin-bottom: 1.5rem;
+}
+
+.connection-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.connection-status.success {
+    color: var(--color-success);
+}
+
+.connection-status.error {
+    color: var(--color-error);
+}
+
+.connection-status.pending {
+    color: var(--color-text-muted);
+}
+
+/* Camera Discovery */
+.camera-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.camera-card {
+    background: var(--color-bg);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.camera-card:hover {
+    border-color: var(--color-text-muted);
+}
+
+.camera-card.selected {
+    border-color: var(--color-primary);
+    background: rgba(45, 212, 191, 0.1);
+}
+
+.camera-preview {
+    width: 100%;
+    height: 120px;
+    background: var(--color-surface-alt);
+    border-radius: 4px;
+    margin-bottom: 0.75rem;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.camera-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.camera-preview-loading {
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+}
+
+.camera-name {
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.camera-entity {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.no-cameras-found {
+    text-align: center;
+    padding: 3rem;
+    color: var(--color-text-muted);
+}
+
+/* Create First Spot */
+.create-spot-form .form-group {
+    margin-bottom: 1.5rem;
+}
+
+.spot-preview {
+    background: var(--color-bg);
+    border-radius: var(--radius);
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.spot-preview h4 {
+    margin-bottom: 0.5rem;
+}
+
+/* Celebration */
+.celebration {
+    text-align: center;
+    padding: 2rem;
+}
+
+.celebration-emoji {
+    font-size: 5rem;
+    margin-bottom: 1rem;
+    animation: bounce 0.5s ease infinite alternate;
+}
+
+@keyframes bounce {
+    from { transform: translateY(0); }
+    to { transform: translateY(-10px); }
+}
+
+.celebration-title {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+.celebration-message {
+    color: var(--color-text-muted);
+    font-size: 1.1rem;
+    max-width: 400px;
+    margin: 0 auto 2rem;
+}
+
+.gamification-preview {
+    background: var(--color-bg);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-top: 2rem;
+    text-align: left;
+}
+
+.gamification-preview h4 {
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.achievement-preview {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem;
+    background: var(--color-surface);
+    border-radius: var(--radius);
+    margin-bottom: 0.5rem;
+}
+
+.achievement-emoji {
+    font-size: 1.5rem;
+}
+
+.achievement-info {
+    flex: 1;
+}
+
+.achievement-name {
+    font-weight: 500;
+}
+
+.achievement-desc {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+
+/* Skip wizard link */
+.skip-wizard {
+    text-align: center;
+    margin-top: 1rem;
+}
+
+.skip-wizard a {
+    color: var(--color-text-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+
+.skip-wizard a:hover {
+    color: var(--color-text);
+}
+
+/* Smart Suggestions Styles */
+.smart-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.suggestion-chip {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 20px;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--color-text-muted);
+}
+
+.suggestion-chip:hover {
+    border-color: var(--color-primary);
+    color: var(--color-text);
+}
+
+.suggestion-chip.selected {
+    background: rgba(45, 212, 191, 0.15);
+    border-color: var(--color-primary);
+    color: var(--color-text);
+}
+
+.suggestions-label {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    width: 100%;
+    margin-bottom: 0.25rem;
+}
+
+/* Streak Explanation for Wizard */
+.streak-explanation-wizard {
+    background: linear-gradient(135deg, rgba(255, 87, 51, 0.08) 0%, rgba(255, 193, 7, 0.08) 100%);
+    border: 1px solid rgba(255, 152, 0, 0.3);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    margin: 1.5rem auto;
+    max-width: 500px;
+    text-align: left;
+}
+
+.streak-explanation-wizard h4 {
+    margin: 0 0 0.5rem 0;
+    text-align: center;
+}
+
+.streak-explanation-wizard p {
+    font-size: 0.9rem;
+    margin-bottom: 0.75rem;
+    text-align: center;
+}
+
+.streak-explanation-wizard ul {
+    margin: 0;
+    padding-left: 1.25rem;
+    list-style: none;
+}
+
+.streak-explanation-wizard li {
+    position: relative;
+    margin-bottom: 0.4rem;
+    font-size: 0.85rem;
+}
+
+.streak-explanation-wizard li::before {
+    content: "✨";
+    position: absolute;
+    left: -1.25rem;
+}
+
+.streak-tip-wizard {
+    margin-top: 0.75rem !important;
+    margin-bottom: 0 !important;
+    background: var(--color-surface);
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    text-align: center;
+}
+</style>
+
+<div class="wizard-container">
+    <div class="wizard-header">
+        <div class="wizard-progress">
+            <div class="wizard-step-indicator active" data-step="1"></div>
+            <div class="wizard-step-indicator" data-step="2"></div>
+            <div class="wizard-step-indicator" data-step="3"></div>
+            <div class="wizard-step-indicator" data-step="4"></div>
+            <div class="wizard-step-indicator" data-step="5"></div>
+            <div class="wizard-step-indicator" data-step="6"></div>
+        </div>
+    </div>
+
+    <div class="wizard-content">
+        <!-- Step 1: Welcome -->
+        <div class="wizard-step active" data-step="1">
+            <div class="welcome-hero">
+                <div class="welcome-emoji">📍✨</div>
+                <h1 class="welcome-title">Welcome to TwinSync Spot!</h1>
+                <p class="welcome-description">
+                    Track any space with AI-powered visual checks. Get fun, personality-packed feedback 
+                    that helps you keep spaces tidy without the stress.
+                </p>
+            </div>
+            
+            <div class="feature-cards">
+                <div class="feature-card">
+                    <div class="feature-card-emoji">📷</div>
+                    <div class="feature-card-title">Camera Snapshots</div>
+                    <div class="feature-card-desc">Use any Home Assistant camera</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card-emoji">🎭</div>
+                    <div class="feature-card-title">Fun Personalities</div>
+                    <div class="feature-card-desc">From grandma to pirate!</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card-emoji">🔥</div>
+                    <div class="feature-card-title">Streak Tracking</div>
+                    <div class="feature-card-desc">Build habits that stick</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card-emoji">🏆</div>
+                    <div class="feature-card-title">Achievements</div>
+                    <div class="feature-card-desc">Unlock rewards as you go</div>
+                </div>
+            </div>
+            
+            <div class="wizard-actions">
+                <div></div>
+                <button onclick="nextStep()" class="btn btn-primary">Let's Get Started →</button>
+            </div>
+        </div>
+
+        <!-- Step 2: Connect -->
+        <div class="wizard-step" data-step="2">
+            <h2>🔗 Connect Your Services</h2>
+            <p style="color: var(--color-text-muted); margin-bottom: 1.5rem;">
+                Connect to Home Assistant for cameras and Gemini AI for smart analysis and image generation.
+            </p>
+            
+            <div class="connection-form">
+                <div class="form-group">
+                    <label for="wizard-ha-url">Home Assistant URL</label>
+                    <input type="text" id="wizard-ha-url" placeholder="http://homeassistant.local:8123">
+                    <small class="form-help">Your Home Assistant instance URL</small>
+                    <div id="ha-url-status" class="connection-status pending">⏳ Not tested yet</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="wizard-ha-token">Home Assistant Token</label>
+                    <input type="password" id="wizard-ha-token" placeholder="Long-lived access token">
+                    <small class="form-help">Profile → Security → Long-Lived Access Tokens</small>
+                </div>
+                
+                <button onclick="testHAConnection()" class="btn btn-secondary">🔍 Test HA Connection</button>
+                
+                <div class="form-group" style="margin-top: 1.5rem;">
+                    <label for="wizard-gemini-key">Gemini API Key</label>
+                    <input type="password" id="wizard-gemini-key" placeholder="Your Gemini API key">
+                    <small class="form-help">
+                        <a href="https://makersuite.google.com/app/apikey" target="_blank">Get a free key from Google →</a>
+                        Gemini handles spot analysis AND generates your tidy preview images
+                    </small>
+                    <div id="gemini-status" class="connection-status pending">⏳ Not tested yet</div>
+                </div>
+
+                <button onclick="testGeminiKey()" class="btn btn-secondary">🔍 Test Gemini Key</button>
+                
+                <div class="form-group" style="margin-top: 1.5rem;">
+                    <label for="wizard-replicate-key">Replicate API Key (for Tidy Preview)</label>
+                    <input type="password" id="wizard-replicate-key" placeholder="Your Replicate API token">
+                    <small class="form-help">
+                        <a href="https://replicate.com/account/api-tokens" target="_blank">Get a FREE API token at Replicate →</a>
+                        This creates the cartoon version of your room using real img2img transformation!
+                    </small>
+                    <div id="replicate-status" class="connection-status pending">⏳ Not tested yet</div>
+                </div>
+                
+                <div class="form-group" style="margin-top: 1.5rem;">
+                    <label for="wizard-huggingface-key">Hugging Face API Key (Optional)</label>
+                    <input type="password" id="wizard-huggingface-key" placeholder="Your Hugging Face API token">
+                    <small class="form-help">
+                        <a href="https://huggingface.co/settings/tokens" target="_blank">Get a free token from Hugging Face →</a>
+                        Fallback for image generation if Replicate and Gemini are unavailable
+                    </small>
+                    <div id="huggingface-status" class="connection-status pending">⏳ Not tested yet</div>
+                </div>
+
+                <button onclick="testHuggingFaceKey()" class="btn btn-secondary">🔍 Test HuggingFace Key</button>
+            </div>
+            
+            <div class="wizard-actions">
+                <button onclick="prevStep()" class="btn btn-secondary">← Back</button>
+                <button onclick="saveConnectionsAndNext()" class="btn btn-primary">Save & Continue →</button>
+            </div>
+        </div>
+
+        <!-- Step 3: Pick Personality -->
+        <div class="wizard-step" data-step="3">
+            <h2>🎭 Pick Your AI Personality</h2>
+            <p style="color: var(--color-text-muted); margin-bottom: 1.5rem;">
+                Choose how the AI talks to you! Each personality has its own unique voice and style.
+            </p>
+            
+            <div id="personality-grid" class="personality-grid">
+                <!-- Populated by JavaScript -->
+            </div>
+            
+            <div class="wizard-actions">
+                <button onclick="prevStep()" class="btn btn-secondary">← Back</button>
+                <button onclick="nextStep()" class="btn btn-primary">Continue →</button>
+            </div>
+        </div>
+
+        <!-- Step 4: Discover Cameras -->
+        <div class="wizard-step" data-step="4">
+            <h2>📷 Discover Your Cameras</h2>
+            <p style="color: var(--color-text-muted); margin-bottom: 1.5rem;">
+                Select which camera you want to use for your first spot, or skip to use photo uploads instead.
+            </p>
+            
+            <div id="camera-grid" class="camera-grid">
+                <div class="camera-preview-loading">🔍 Looking for cameras...</div>
+            </div>
+            
+            <div class="wizard-actions">
+                <button onclick="prevStep()" class="btn btn-secondary">← Back</button>
+                <button onclick="nextStep()" class="btn btn-primary" id="camera-continue-btn">Continue →</button>
+            </div>
+            <div style="text-align: center; margin-top: 1rem;">
+                <button onclick="skipCamera()" class="btn btn-muted" style="text-decoration: underline;">Skip - I'll use photo uploads</button>
+            </div>
+        </div>
+
+        <!-- Step 5: Create First Spot -->
+        <div class="wizard-step" data-step="5">
+            <h2>📍 Create Your First Spot</h2>
+            <p style="color: var(--color-text-muted); margin-bottom: 1.5rem;">
+                Almost there! Let's set up your first spot to track.
+            </p>
+            
+            <div class="create-spot-form">
+                <div class="form-group">
+                    <label for="wizard-spot-name">Spot Name</label>
+                    <input type="text" id="wizard-spot-name" placeholder="e.g., My Work Desk">
+                </div>
+                
+                <div class="form-group">
+                    <label for="wizard-spot-type">Spot Type</label>
+                    <select id="wizard-spot-type" onchange="updateWizardTemplate()">
+                        <option value="work">💼 Work / Focus Desk</option>
+                        <option value="chill">🛋️ Chill / Relaxing Area</option>
+                        <option value="sleep">🛏️ Sleep Zone</option>
+                        <option value="kitchen">🍳 Kitchen</option>
+                        <option value="entryway">🚪 Entryway / Hallway</option>
+                        <option value="storage">📦 Storage Area</option>
+                        <option value="custom">✨ Custom</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="wizard-definition">Additional notes or specific problem areas (optional)</label>
+                    <textarea id="wizard-definition" rows="4" placeholder="e.g., Coffee cups always pile up, papers get scattered..."></textarea>
+                    <small class="form-help">💡 The AI will use common sense - just add any specific concerns.</small>
+                    <div id="wizard-smart-suggestions" class="smart-suggestions" style="margin-top: 0.75rem;">
+                        <!-- Smart suggestions populated by JavaScript based on spot type -->
+                    </div>
+                </div>
+                
+                <div class="spot-preview">
+                    <h4>Selected Camera</h4>
+                    <p id="selected-camera-display">No camera selected</p>
+                    
+                    <h4 style="margin-top: 1rem;">Selected Personality</h4>
+                    <p id="selected-personality-display">No personality selected</p>
+                </div>
+            </div>
+            
+            <div class="wizard-actions">
+                <button onclick="prevStep()" class="btn btn-secondary">← Back</button>
+                <button onclick="createFirstSpot()" class="btn btn-primary">Create Spot 🎉</button>
+            </div>
+        </div>
+
+        <!-- Step 6: Celebration -->
+        <div class="wizard-step" data-step="6">
+            <div class="celebration">
+                <div class="celebration-emoji">🎉</div>
+                <h1 class="celebration-title">You're All Set!</h1>
+                <p class="celebration-message">
+                    Your first spot is ready. Start checking it to build your streak and earn XP!
+                </p>
+                
+                <a href="{{ ingress_path + '/' if ingress_path else '/' }}" class="btn btn-primary" style="padding: 1rem 2rem; font-size: 1.1rem;">
+                    Go to My Spots →
+                </a>
+            </div>
+            
+
+            <div class="gamification-preview">
+                <h4>🎮 Your Journey Begins!</h4>
+                <div class="achievement-preview">
+                    <div class="achievement-emoji">🌱</div>
+                    <div class="achievement-info">
+                        <div class="achievement-name">Level 1: Tidy Novice</div>
+                        <div class="achievement-desc">0 XP - Just getting started!</div>
+                    </div>
+                </div>
+                <div class="achievement-preview" style="opacity: 0.5;">
+                    <div class="achievement-emoji">🏆</div>
+                    <div class="achievement-info">
+                        <div class="achievement-name">First Blood</div>
+                        <div class="achievement-desc">Reset your first spot - 50 XP</div>
+                    </div>
+                </div>
+                <div class="achievement-preview" style="opacity: 0.5;">
+                    <div class="achievement-emoji">🔥</div>
+                    <div class="achievement-info">
+                        <div class="achievement-name">Streak Master</div>
+                        <div class="achievement-desc">Keep a 7-day streak - 150 XP</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="skip-wizard">
+        <a href="{{ ingress_path + '/' if ingress_path else '/' }}">Skip wizard and explore on my own →</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const INGRESS_PATH = "{{ ingress_path }}";
+
+let currentStep = 1;
+let selectedPersonality = 'polish_grandma';
+let selectedCamera = null;
+let personalities = [];
+let spotTemplates = {};
+
+async function loadExistingSettings() {
+    try {
+        const settings = await api('/api/settings');
+
+        if (settings.ha_url) {
+            document.getElementById('wizard-ha-url').value = settings.ha_url;
+        }
+
+        if (settings.has_ha_token) {
+            const statusEl = document.getElementById('ha-url-status');
+            statusEl.textContent = '✅ Token configured';
+            statusEl.className = 'connection-status success';
+        }
+
+        if (settings.has_gemini_key) {
+            const geminiInput = document.getElementById('wizard-gemini-key');
+            geminiInput.placeholder = '••••••••••••••••';
+            const statusEl = document.getElementById('gemini-status');
+            statusEl.textContent = '✅ API key saved';
+            statusEl.className = 'connection-status success';
+        }
+        
+        if (settings.has_huggingface_key) {
+            const hfInput = document.getElementById('wizard-huggingface-key');
+            hfInput.placeholder = '••••••••••••••••';
+            const statusEl = document.getElementById('huggingface-status');
+            statusEl.textContent = '✅ API key saved';
+            statusEl.className = 'connection-status success';
+        }
+    } catch (err) {
+        console.error('Failed to load existing settings', err);
+    }
+}
+
+// Step navigation
+function updateStepIndicators() {
+    document.querySelectorAll('.wizard-step-indicator').forEach(indicator => {
+        const step = parseInt(indicator.dataset.step);
+        indicator.classList.remove('active', 'completed');
+        if (step === currentStep) {
+            indicator.classList.add('active');
+        } else if (step < currentStep) {
+            indicator.classList.add('completed');
+        }
+    });
+    
+    document.querySelectorAll('.wizard-step').forEach(stepEl => {
+        const step = parseInt(stepEl.dataset.step);
+        stepEl.classList.toggle('active', step === currentStep);
+    });
+}
+
+function nextStep() {
+    if (currentStep < 6) {
+        currentStep++;
+        updateStepIndicators();
+        onStepChange();
+    }
+}
+
+function prevStep() {
+    if (currentStep > 1) {
+        currentStep--;
+        updateStepIndicators();
+    }
+}
+
+function goToStep(step) {
+    currentStep = step;
+    updateStepIndicators();
+    onStepChange();
+}
+
+function onStepChange() {
+    // Load step-specific data
+    if (currentStep === 3) {
+        loadPersonalities();
+    } else if (currentStep === 4) {
+        discoverCameras();
+    } else if (currentStep === 5) {
+        updateSpotPreview();
+        loadSpotTemplates();
+    }
+}
+
+// Connection testing
+async function testHAConnection() {
+    const statusEl = document.getElementById('ha-url-status');
+    const url = document.getElementById('wizard-ha-url').value.trim();
+    const token = document.getElementById('wizard-ha-token').value.trim();
+    
+    if (!url || !token) {
+        statusEl.textContent = '❌ Please enter URL and token';
+        statusEl.className = 'connection-status error';
+        return;
+    }
+    
+    statusEl.textContent = '⏳ Testing connection...';
+    statusEl.className = 'connection-status pending';
+    
+    try {
+        // Save settings first
+        await api('/api/settings', {
+            method: 'POST',
+            body: JSON.stringify({ ha_url: url, ha_token: token })
+        });
+        
+        // Test connection
+        const result = await api('/api/settings/test-ha', { method: 'POST' });
+        
+        if (result.success) {
+            statusEl.textContent = `✅ Connected! Found ${result.camera_count} cameras.`;
+            statusEl.className = 'connection-status success';
+        } else {
+            statusEl.textContent = `❌ ${result.message || 'Connection failed'}`;
+            statusEl.className = 'connection-status error';
+        }
+    } catch (err) {
+        statusEl.textContent = `❌ ${err.message}`;
+        statusEl.className = 'connection-status error';
+    }
+}
+
+async function testGeminiKey() {
+    const statusEl = document.getElementById('gemini-status');
+    const key = document.getElementById('wizard-gemini-key').value.trim();
+    
+    if (!key) {
+        statusEl.textContent = '❌ Please enter an API key';
+        statusEl.className = 'connection-status error';
+        return;
+    }
+    
+    statusEl.textContent = '⏳ Testing API key...';
+    statusEl.className = 'connection-status pending';
+    
+    try {
+        // Save key first
+        await api('/api/settings', {
+            method: 'POST',
+            body: JSON.stringify({ gemini_api_key: key })
+        });
+        
+        // Test key
+        const result = await api('/api/settings/test-gemini', { method: 'POST' });
+        
+        if (result.success) {
+            statusEl.textContent = '✅ API key is valid!';
+            statusEl.className = 'connection-status success';
+        } else {
+            statusEl.textContent = `❌ ${result.message || 'Invalid key'}`;
+            statusEl.className = 'connection-status error';
+        }
+    } catch (err) {
+        statusEl.textContent = `❌ ${err.message}`;
+        statusEl.className = 'connection-status error';
+    }
+}
+
+async function testHuggingFaceKey() {
+    const statusEl = document.getElementById('huggingface-status');
+    const key = document.getElementById('wizard-huggingface-key').value.trim();
+    
+    if (!key) {
+        statusEl.textContent = '❌ Please enter an API key';
+        statusEl.className = 'connection-status error';
+        return;
+    }
+    
+    statusEl.textContent = '⏳ Testing API key...';
+    statusEl.className = 'connection-status pending';
+    
+    try {
+        // Save key first
+        await api('/api/settings', {
+            method: 'POST',
+            body: JSON.stringify({ huggingface_api_key: key })
+        });
+        
+        // For now, just confirm it was saved - we could add a test endpoint later
+        statusEl.textContent = '✅ API key saved!';
+        statusEl.className = 'connection-status success';
+    } catch (err) {
+        statusEl.textContent = `❌ ${err.message}`;
+        statusEl.className = 'connection-status error';
+    }
+}
+
+async function saveConnectionsAndNext() {
+    const url = document.getElementById('wizard-ha-url').value.trim();
+    const token = document.getElementById('wizard-ha-token').value.trim();
+    const geminiKey = document.getElementById('wizard-gemini-key').value.trim();
+    const replicateKey = document.getElementById('wizard-replicate-key').value.trim();
+    const hfKey = document.getElementById('wizard-huggingface-key').value.trim();
+    
+    // Save any entered settings
+    const settings = {};
+    if (url) settings.ha_url = url;
+    if (token) settings.ha_token = token;
+    if (geminiKey) settings.gemini_api_key = geminiKey;
+    if (replicateKey) settings.replicate_api_key = replicateKey;
+    if (hfKey) settings.huggingface_api_key = hfKey;
+    
+    if (Object.keys(settings).length > 0) {
+        try {
+            await api('/api/settings', {
+                method: 'POST',
+                body: JSON.stringify(settings)
+            });
+        } catch (err) {
+            showToast('Failed to save settings: ' + err.message, 'error');
+            return;
+        }
+    }
+    
+    nextStep();
+}
+
+// Personality selection
+async function loadPersonalities() {
+    const grid = document.getElementById('personality-grid');
+    
+    try {
+        const data = await api('/api/personalities');
+        personalities = data.personalities;
+        
+        grid.innerHTML = personalities.map(p => `
+            <div class="personality-card ${p.key === selectedPersonality ? 'selected' : ''}" 
+                 onclick="selectPersonality('${p.key}')" data-personality="${p.key}">
+                <div class="personality-emoji">${p.emoji}</div>
+                <div class="personality-name">${p.name}</div>
+                <div class="personality-desc">${p.description}</div>
+                <div class="personality-quote">"${p.example_quote}"</div>
+            </div>
+        `).join('');
+    } catch (err) {
+        grid.innerHTML = '<p class="error">Failed to load personalities</p>';
+    }
+}
+
+function selectPersonality(key) {
+    selectedPersonality = key;
+    
+    document.querySelectorAll('.personality-card').forEach(card => {
+        card.classList.toggle('selected', card.dataset.personality === key);
+    });
+    
+    updateSpotPreview();
+}
+
+// Camera discovery
+async function discoverCameras() {
+    const grid = document.getElementById('camera-grid');
+    const continueBtn = document.getElementById('camera-continue-btn');
+    
+    grid.innerHTML = '<div class="camera-preview-loading">🔍 Looking for cameras...</div>';
+    
+    try {
+        const data = await api('/api/cameras/discover');
+        
+        if (!data.cameras || data.cameras.length === 0) {
+            grid.innerHTML = `
+                <div class="no-cameras-found">
+                    <p style="font-size: 2rem;">📷❌</p>
+                    <p>No cameras found in Home Assistant.</p>
+                    <p style="font-size: 0.9rem; margin-top: 0.5rem;">
+                        Make sure you have cameras configured and your connection is working.
+                    </p>
+                    <button onclick="discoverCameras()" class="btn btn-secondary" style="margin-top: 1rem;">
+                        🔄 Try Again
+                    </button>
+                </div>
+            `;
+            return;
+        }
+        
+        grid.innerHTML = data.cameras.map(c => `
+            <div class="camera-card ${selectedCamera === c.entity_id ? 'selected' : ''}" 
+                 onclick="selectCamera('${c.entity_id}', '${escapeHtml(c.name)}', '${c.suggested_type}')"
+                 data-camera="${c.entity_id}">
+                <div class="camera-preview" id="preview-${c.entity_id.replace(/\./g, '-')}">
+                    <span class="camera-preview-loading">📷 Loading...</span>
+                </div>
+                <div class="camera-name">${escapeHtml(c.name)}</div>
+                <div class="camera-entity">${escapeHtml(c.entity_id)}</div>
+            </div>
+        `).join('');
+        
+        // Load previews
+        data.cameras.forEach(c => {
+            loadCameraPreview(c.entity_id);
+        });
+        
+    } catch (err) {
+        grid.innerHTML = `
+            <div class="no-cameras-found">
+                <p>❌ Failed to discover cameras: ${escapeHtml(err.message)}</p>
+                <button onclick="discoverCameras()" class="btn btn-secondary" style="margin-top: 1rem;">
+                    🔄 Try Again
+                </button>
+            </div>
+        `;
+    }
+}
+
+async function loadCameraPreview(entityId) {
+    const previewEl = document.getElementById(`preview-${entityId.replace(/\./g, '-')}`);
+    if (!previewEl) return;
+    
+    try {
+        const response = await fetch(`${INGRESS_PATH}/api/cameras/${encodeURIComponent(entityId)}/preview`);
+        if (response.ok) {
+            const blob = await response.blob();
+            const imageUrl = URL.createObjectURL(blob);
+            previewEl.innerHTML = `<img src="${imageUrl}" alt="Camera preview">`;
+        } else {
+            previewEl.innerHTML = '<span class="camera-preview-loading">📷 Preview unavailable</span>';
+        }
+    } catch (err) {
+        previewEl.innerHTML = '<span class="camera-preview-loading">📷 Preview unavailable</span>';
+    }
+}
+
+function selectCamera(entityId, name, suggestedType) {
+    selectedCamera = entityId;
+    
+    document.querySelectorAll('.camera-card').forEach(card => {
+        card.classList.toggle('selected', card.dataset.camera === entityId);
+    });
+    
+    // Auto-suggest spot type based on camera name
+    if (suggestedType && suggestedType !== 'custom') {
+        document.getElementById('wizard-spot-type').value = suggestedType;
+        updateWizardTemplate();
+    }
+    
+    // Auto-fill spot name if empty
+    const spotNameInput = document.getElementById('wizard-spot-name');
+    if (!spotNameInput.value) {
+        spotNameInput.value = name;
+    }
+    
+    updateSpotPreview();
+}
+
+function skipCamera() {
+    // Clear selected camera to allow photo upload mode
+    selectedCamera = null;
+    
+    // Clear selection UI
+    document.querySelectorAll('.camera-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    
+    // Move to next step
+    nextStep();
+}
+
+// Spot creation
+async function loadSpotTemplates() {
+    try {
+        const data = await api('/api/spot-types');
+        data.types.forEach(t => {
+            spotTemplates[t.key] = t.template;
+        });
+        // Initialize smart suggestions for current spot type
+        updateWizardSmartSuggestions(document.getElementById('wizard-spot-type').value);
+    } catch (err) {
+        console.error('Failed to load templates:', err);
+        // Still initialize suggestions even if templates fail
+        updateWizardSmartSuggestions(document.getElementById('wizard-spot-type').value);
+    }
+}
+
+// Smart suggestions for each spot type in wizard
+const WIZARD_SPOT_SUGGESTIONS = {
+    work: ['📄 Papers/documents', '☕ Coffee cups/mugs', '🔌 Cable clutter', '📦 Random items', '🗑️ Trash/tissues', '📱 Devices charging'],
+    chill: ['🍽️ Dishes/cups', '📰 Magazines/papers', '🧥 Clothes', '📦 Random clutter', '🎮 Gaming stuff', '🧸 Toys'],
+    sleep: ['👕 Clothes on floor', '🛏️ Bed unmade', '📱 Devices on nightstand', '💊 Water/glasses', '📚 Books piled up'],
+    kitchen: ['🍽️ Dishes in sink', '🗑️ Trash overflow', '🍞 Food left out', '📦 Packages', '🧽 Cleaning supplies out', '📄 Mail/papers'],
+    entryway: ['👟 Shoes scattered', '🧥 Coats/bags', '📦 Packages', '🔑 Keys out of place', '📬 Mail pile', '☂️ Umbrellas'],
+    storage: ['📦 Boxes out of place', '🛍️ Shopping bags', '🧸 Items piling up', '🗃️ Things not in bins'],
+    custom: ['📦 General clutter', '🍽️ Dishes/cups', '📄 Papers', '👕 Clothes', '🗑️ Trash']
+};
+
+let wizardSelectedSuggestions = [];
+
+function updateWizardTemplate() {
+    const spotType = document.getElementById('wizard-spot-type').value;
+    updateWizardSmartSuggestions(spotType);
+}
+
+function updateWizardSmartSuggestions(spotType) {
+    const container = document.getElementById('wizard-smart-suggestions');
+    const suggestions = WIZARD_SPOT_SUGGESTIONS[spotType] || WIZARD_SPOT_SUGGESTIONS.custom;
+    
+    // Reset selections when type changes
+    wizardSelectedSuggestions = [];
+    
+    container.innerHTML = `
+        <span class="suggestions-label">Common issues (click to add):</span>
+        ${suggestions.map(s => `
+            <span class="suggestion-chip" onclick="toggleWizardSuggestion(this, '${escapeHtml(s)}')">${escapeHtml(s)}</span>
+        `).join('')}
+    `;
+}
+
+function toggleWizardSuggestion(chip, suggestion) {
+    const definition = document.getElementById('wizard-definition');
+    chip.classList.toggle('selected');
+    
+    if (chip.classList.contains('selected')) {
+        wizardSelectedSuggestions.push(suggestion);
+    } else {
+        wizardSelectedSuggestions = wizardSelectedSuggestions.filter(s => s !== suggestion);
+    }
+    
+    // Update the definition field with selected suggestions
+    if (wizardSelectedSuggestions.length > 0) {
+        const currentValue = definition.value.trim();
+        const suggestionsText = wizardSelectedSuggestions.join(', ');
+        
+        // Check if suggestions are already in the field
+        if (!currentValue.includes('Focus areas:')) {
+            if (currentValue) {
+                definition.value = currentValue + '\n\nFocus areas: ' + suggestionsText;
+            } else {
+                definition.value = 'Focus areas: ' + suggestionsText;
+            }
+        } else {
+            // Update the Focus areas line
+            definition.value = currentValue.replace(/Focus areas:.*$/m, 'Focus areas: ' + suggestionsText);
+        }
+    }
+}
+
+function updateSpotPreview() {
+    const cameraDisplay = document.getElementById('selected-camera-display');
+    const personalityDisplay = document.getElementById('selected-personality-display');
+    
+    if (selectedCamera) {
+        cameraDisplay.textContent = `📷 ${selectedCamera}`;
+    } else {
+        cameraDisplay.textContent = '📷 No camera - will use photo uploads';
+    }
+    
+    const personality = personalities.find(p => p.key === selectedPersonality);
+    if (personality) {
+        personalityDisplay.textContent = `${personality.emoji} ${personality.name}`;
+    } else {
+        personalityDisplay.textContent = 'No personality selected';
+    }
+}
+
+async function createFirstSpot() {
+    const name = document.getElementById('wizard-spot-name').value.trim();
+    const spotType = document.getElementById('wizard-spot-type').value;
+    const definition = document.getElementById('wizard-definition').value.trim();
+    
+    if (!name) {
+        showToast('Please enter a spot name', 'error');
+        return;
+    }
+    
+    // Camera is now optional - user can skip and use photo uploads instead
+    
+    // Definition is now optional - AI will use common sense
+    
+    try {
+        // Save personality setting
+        await api('/api/settings', {
+            method: 'POST',
+            body: JSON.stringify({ personality: selectedPersonality })
+        });
+        
+        // Create the spot with per-spot personality
+        await api('/api/spots', {
+            method: 'POST',
+            body: JSON.stringify({
+                name: name,
+                camera_entity: selectedCamera,
+                definition: definition,
+                spot_type: spotType,
+                voice: 'supportive',
+                personality: selectedPersonality
+            })
+        });
+        
+        // Mark wizard as complete
+        await api('/api/wizard/complete', { method: 'POST' });
+        
+        showToast('Spot created successfully! 🎉', 'success');
+        nextStep();
+        
+    } catch (err) {
+        showToast('Failed to create spot: ' + err.message, 'error');
+    }
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    loadExistingSettings();
+    updateStepIndicators();
+});
+</script>
+{% endblock %}
