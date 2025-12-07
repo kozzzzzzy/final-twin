@@ -1,0 +1,1508 @@
+{% extends "base.html" %}
+
+{% block title %}Spot Details - TwinSync Spot{% endblock %}
+
+{% block content %}
+<style>
+/* Rich Analysis Styles */
+.personality-message {
+    background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-surface-alt) 100%);
+    border-left: 4px solid var(--color-primary);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+    border-radius: 0 8px 8px 0;
+}
+.personality-quote {
+    font-size: 1.1rem;
+    font-style: italic;
+    margin: 0;
+    line-height: 1.6;
+}
+.one-thing-focus {
+    background: var(--color-success-bg, #e8f5e9);
+    border: 2px solid var(--color-success, #4caf50);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+.one-thing-focus h3 {
+    margin: 0 0 0.5rem 0;
+    color: var(--color-success, #4caf50);
+}
+.one-thing-focus p {
+    margin: 0;
+    font-weight: 500;
+}
+.time-estimate {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    font-weight: normal;
+    margin-left: 0.5rem;
+}
+
+/* To Sort Checkboxes */
+.to-sort-hint {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    margin-bottom: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    background: rgba(45, 212, 191, 0.1);
+    border-radius: 6px;
+}
+
+.sort-item-checkbox {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    position: relative;
+    margin-right: 0.5rem;
+}
+
+.sort-item-checkbox input {
+    opacity: 0;
+    position: absolute;
+    cursor: pointer;
+}
+
+.sort-item-checkbox .checkmark {
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--color-border);
+    border-radius: 4px;
+    background: var(--color-surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.sort-item-checkbox input:checked + .checkmark {
+    background: var(--color-success);
+    border-color: var(--color-success);
+}
+
+.sort-item-checkbox input:checked + .checkmark::after {
+    content: "✓";
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.sort-item-checkbox:hover .checkmark {
+    border-color: var(--color-primary);
+}
+
+.to-sort-list li {
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+.item-text {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+.item-sorted {
+    opacity: 0.6;
+}
+
+.sorted-text {
+    text-decoration: line-through;
+    color: var(--color-text-muted);
+}
+
+/* Priority colors */
+.priority-high {
+    border-left: 3px solid #f44336;
+    padding-left: 0.75rem;
+}
+.priority-high .item-priority-dot {
+    width: 8px;
+    height: 8px;
+    background: #f44336;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 0.5rem;
+}
+.priority-normal .item-priority-dot {
+    width: 8px;
+    height: 8px;
+    background: #ff9800;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 0.5rem;
+}
+.priority-low .item-priority-dot {
+    width: 8px;
+    height: 8px;
+    background: #9e9e9e;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 0.5rem;
+}
+.quick-fix-tip {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    margin-top: 0.25rem;
+    padding-left: 1rem;
+    width: 100%;
+}
+
+/* History Expandable List */
+.checks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.check-entry {
+    background: var(--color-bg);
+    border-radius: var(--radius);
+    border: 1px solid var(--color-border);
+    overflow: hidden;
+}
+
+.check-entry.check-sorted {
+    border-left: 3px solid var(--color-success);
+}
+
+.check-entry.check-needs-attention {
+    border-left: 3px solid var(--color-warning);
+}
+
+.check-entry-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.check-entry-header:hover {
+    background: var(--color-surface-alt);
+}
+
+.check-entry-summary {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.check-status {
+    font-size: 1.25rem;
+}
+
+.check-time {
+    font-weight: 500;
+}
+
+.check-items-count {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    background: var(--color-surface);
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+}
+
+.check-expand-icon {
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    transition: transform 0.2s;
+}
+
+.check-entry-details {
+    padding: 0 1rem 1rem 1rem;
+    border-top: 1px solid var(--color-border);
+}
+
+.check-items-list {
+    margin-top: 0.75rem;
+}
+
+.check-items-list h4 {
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    color: var(--color-text-muted);
+}
+
+.check-items-list ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.check-items-list li {
+    padding: 0.35rem 0;
+    font-size: 0.9rem;
+}
+
+.check-items-list .item-was-sorted {
+    color: var(--color-text-muted);
+    text-decoration: line-through;
+}
+
+.no-items {
+    color: var(--color-success);
+    font-style: italic;
+    margin: 0.5rem 0;
+}
+
+.check-notes-detail {
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    background: var(--color-surface);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-style: italic;
+}
+
+.check-entry-actions {
+    margin-top: 0.75rem;
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Quick Wins */
+.quick-wins-section {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+.quick-wins-section h3 {
+    margin: 0 0 0.75rem 0;
+}
+.quick-wins-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.quick-win {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--color-border);
+}
+.quick-win:last-child {
+    border-bottom: none;
+}
+.quick-win-action {
+    flex: 1;
+}
+.quick-win-time {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    margin-left: 1rem;
+}
+.impact-high {
+    background: var(--color-success-bg, #e8f5e9);
+}
+.impact-medium {
+    background: transparent;
+}
+.impact-low {
+    opacity: 0.8;
+}
+/* XP Badge */
+.xp-earned-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #ffd700, #ffb300);
+    color: #333;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: bold;
+    margin-top: 1rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Upload Section Styles */
+.upload-section {
+    background: var(--color-surface);
+    border: 2px dashed var(--color-border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    text-align: center;
+    margin-bottom: 1.5rem;
+    transition: all 0.2s ease;
+}
+
+.upload-section.drag-over {
+    border-color: var(--color-primary);
+    background: rgba(45, 212, 191, 0.05);
+}
+
+.upload-section h3 {
+    margin: 0 0 0.75rem 0;
+}
+
+.upload-buttons {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+}
+
+.upload-hint {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    margin-top: 0.75rem;
+}
+
+.upload-preview {
+    margin-top: 1rem;
+    max-width: 300px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.upload-preview img {
+    max-width: 100%;
+    border-radius: var(--radius);
+}
+
+/* Personality badge in header */
+.personality-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--color-surface-alt);
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    margin-left: 0.5rem;
+}
+
+/* Personality Editor */
+.personality-editor {
+    background: var(--color-bg);
+    border-radius: var(--radius);
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.personality-editor h4 {
+    margin-bottom: 0.75rem;
+}
+
+.personality-mini-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 0.5rem;
+}
+
+.personality-mini-card {
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 0.5rem;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.personality-mini-card:hover {
+    border-color: var(--color-text-muted);
+}
+
+.personality-mini-card.selected {
+    border-color: var(--color-primary);
+    background: rgba(45, 212, 191, 0.1);
+}
+
+.personality-mini-emoji {
+    font-size: 1.5rem;
+}
+
+.personality-mini-name {
+    font-size: 0.7rem;
+    margin-top: 0.25rem;
+}
+
+/* Visual Streak Counter Styles */
+.streak-visual {
+    background: linear-gradient(135deg, rgba(255, 152, 0, 0.15) 0%, rgba(255, 87, 51, 0.15) 100%);
+    border: 2px solid rgba(255, 152, 0, 0.4);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.streak-counter {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.streak-counter.streak-active {
+    animation: streak-pulse 2s ease-in-out infinite;
+}
+
+.streak-counter.streak-zero {
+    opacity: 0.7;
+}
+
+@keyframes streak-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+}
+
+.streak-fire {
+    font-size: 2.5rem;
+    line-height: 1;
+    animation: fire-flicker 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes fire-flicker {
+    from { opacity: 0.9; }
+    to { opacity: 1; }
+}
+
+.streak-number {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #ff6b35;
+    text-shadow: 0 2px 4px rgba(255, 107, 53, 0.3);
+}
+
+.streak-start-hint {
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    margin-top: 0.25rem;
+}
+
+.streak-keep-going {
+    font-size: 0.9rem;
+    color: #ff9500;
+    font-weight: 500;
+    margin-top: 0.25rem;
+}
+
+.streak-record {
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    background: rgba(255, 215, 0, 0.2);
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    display: inline-block;
+}
+
+/* Dream State Header Styles */
+.dream-state-header {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1; /* Make it square */
+    max-width: 600px; /* Large square */
+    margin: 0 auto 1.5rem; /* Center it */
+    overflow: hidden;
+    border-radius: var(--radius);
+}
+
+.dream-state-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.dream-state-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+    padding: 2rem 1.5rem 1rem;
+    color: white;
+}
+
+.dream-state-label {
+    display: inline-block;
+    background: linear-gradient(135deg, #ffd700, #ff9500);
+    color: #333;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    margin-bottom: 0.5rem;
+}
+
+.dream-state-caption {
+    margin: 0;
+    font-size: 1rem;
+    opacity: 0.9;
+}
+
+.dream-state-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 180px;
+    text-align: center;
+    padding: 1.5rem;
+}
+
+.dream-state-generating {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 150, 0, 0.15) 100%);
+    border: 2px dashed rgba(255, 200, 0, 0.4);
+}
+
+.dream-state-generating .dream-state-placeholder span {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--color-text);
+}
+
+.dream-state-generating .dream-state-placeholder p {
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+}
+
+.dream-state-empty {
+    background: linear-gradient(135deg, rgba(45, 212, 191, 0.1) 0%, rgba(45, 180, 150, 0.1) 100%);
+    border: 2px dashed var(--color-border);
+}
+
+.dream-state-empty .dream-state-placeholder span {
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: var(--color-text);
+}
+
+.dream-state-empty .dream-state-placeholder p {
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    max-width: 300px;
+}
+
+.dream-state-failed {
+    background: linear-gradient(135deg, rgba(244, 67, 54, 0.1) 0%, rgba(211, 47, 47, 0.1) 100%);
+    border: 2px dashed rgba(244, 67, 54, 0.4);
+}
+
+.dream-state-failed .dream-state-placeholder span {
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: #d32f2f;
+}
+
+.dream-state-failed .dream-state-placeholder p {
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    max-width: 400px;
+}
+
+.dream-state-failed .error-details {
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    background: rgba(244, 67, 54, 0.05);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    font-family: monospace;
+    max-width: 500px;
+    word-wrap: break-word;
+}
+
+/* Dream State Loading Spinner */
+.dream-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(255, 200, 0, 0.3);
+    border-top-color: #ffd700;
+    border-radius: 50%;
+    animation: dream-spin 1s linear infinite;
+    margin-bottom: 1rem;
+}
+
+@keyframes dream-spin {
+    to { transform: rotate(360deg); }
+}
+</style>
+
+<div id="spot-detail" class="spot-detail">
+    <div class="loading">Loading spot...</div>
+</div>
+
+<!-- Hidden file input for uploads -->
+<input type="file" id="photo-upload" accept="image/*" style="display: none;" onchange="handleFileSelect(event)">
+{% endblock %}
+
+{% block scripts %}
+<script>
+const INGRESS_PATH = "{{ ingress_path }}";
+const SPOT_ID = {{ spot_id }};
+const DREAM_STATE_POLLING_INTERVAL = 4000; // Poll every 4 seconds for dream state updates
+let currentHistoryPage = 1;
+
+async function loadSpot() {
+    const container = document.getElementById('spot-detail');
+    
+    try {
+        const data = await api(`/api/spots/${SPOT_ID}`);
+        const spot = data.spot;
+        const memory = data.memory;
+        const checks = data.recent_checks || [];
+        
+        const statusClass = spot.status === 'sorted' ? 'status-sorted' : 
+                            spot.status === 'needs_attention' ? 'status-needs-attention' :
+                            spot.status === 'snoozed' ? 'status-snoozed' : 'status-unknown';
+        
+        const statusEmoji = spot.status === 'sorted' ? '✅' :
+                            spot.status === 'needs_attention' ? '⚠️' :
+                            spot.status === 'snoozed' ? '😴' : '❓';
+        
+        const statusText = spot.status === 'sorted' ? 'Looking Good' :
+                           spot.status === 'needs_attention' ? 'Needs Attention' :
+                           spot.status === 'snoozed' ? 'Snoozed' : 'Not Checked';
+        
+        const latestCheck = checks[0] || null;
+        
+        // Get personality display info
+        let personalityBadgeHtml = '';
+        if (spot.personality) {
+            // Fetch personality info to show emoji
+            try {
+                const persData = await api('/api/personalities');
+                const pers = persData.personalities.find(p => p.key === spot.personality);
+                if (pers) {
+                    personalityBadgeHtml = `<span class="personality-badge">${pers.emoji} ${pers.name}</span>`;
+                }
+            } catch (e) {
+                console.error('Failed to load personality:', e);
+            }
+        }
+        
+        // Build dream state header HTML
+        let dreamStateHtml = '';
+        if (spot.dream_state_image) {
+            // Image exists: Show just the image, no overlay text
+            dreamStateHtml = `
+                <div class="dream-state-header">
+                    <img src="${INGRESS_PATH}/api${spot.dream_state_image}" alt="Dream state of ${escapeHtml(spot.name)}" class="dream-state-image">
+                </div>
+            `;
+        } else if (spot.dream_state_generating) {
+            // Generating: Show spinner + ✨ emoji (no fluff text)
+            dreamStateHtml = `
+                <div class="dream-state-header dream-state-generating">
+                    <div class="dream-state-placeholder">
+                        <div class="dream-spinner"></div>
+                        <span>✨</span>
+                    </div>
+                </div>
+            `;
+        } else if (spot.dream_state_error) {
+            // Error: Show ⚠️ + "Check logs" hint + retry button
+            dreamStateHtml = `
+                <div class="dream-state-header dream-state-failed">
+                    <div class="dream-state-placeholder">
+                        <span>⚠️</span>
+                        <p>Check logs for details</p>
+                        <button onclick="retryDreamState(${spot.id})" class="btn btn-secondary btn-small">🔄 Retry</button>
+                    </div>
+                </div>
+            `;
+        }
+        // else: no dream state - show nothing
+        
+        container.innerHTML = `
+            ${dreamStateHtml}
+            <div class="spot-detail-header ${statusClass}">
+                <div class="spot-detail-title">
+                    <a href="${INGRESS_PATH}/" class="back-link">← Back</a>
+                    <h1>${escapeHtml(spot.name)} ${personalityBadgeHtml}</h1>
+                    <span class="spot-status-badge">${statusEmoji} ${statusText}</span>
+                </div>
+                <div class="spot-detail-meta">
+                    <span class="spot-mode-badge">${spot.camera_entity && spot.camera_entity.trim() ? '📷 Camera: ' + escapeHtml(spot.camera_entity) : '📤 Upload-only mode'}</span>
+                </div>
+                <div class="spot-detail-actions">
+                    <button onclick="checkSpot(${SPOT_ID})" class="btn btn-primary btn-large">📸 Snap & Check</button>
+                </div>
+            </div>
+            
+            <div class="spot-detail-content">
+                <!-- Upload Section -->
+                <div class="spot-section upload-section">
+                    <h3>📤 Check with Your Own Photo</h3>
+                    <p style="color: var(--color-text-muted); font-size: 0.9rem;">Upload or take a photo to check this spot without using the camera</p>
+                    <div class="upload-buttons">
+                        <button onclick="triggerPhotoUpload()" class="btn btn-secondary">📁 Upload Photo</button>
+                        <button onclick="triggerCameraCapture()" class="btn btn-secondary">📷 Take Photo</button>
+                    </div>
+                    <p class="upload-hint">Or drag and drop an image here</p>
+                    <div id="upload-preview" class="upload-preview" style="display: none;"></div>
+                </div>
+                
+                ${spot.definition && spot.definition.trim() ? `
+                <div class="spot-section">
+                    <h2>Definition</h2>
+                    <div class="definition-box">${escapeHtml(spot.definition).replace(/\n/g, '<br>')}</div>
+                </div>
+                ` : ''}
+                
+                ${latestCheck ? `
+                <div class="spot-section">
+                    <h2>Latest Check</h2>
+                    <div class="check-result">
+                        ${latestCheck.rich_analysis && latestCheck.rich_analysis.personality_message ? `
+                            <div class="personality-message">
+                                <p class="personality-quote">"${escapeHtml(latestCheck.rich_analysis.personality_message)}"</p>
+                            </div>
+                        ` : ''}
+                        
+                        ${latestCheck.rich_analysis && latestCheck.rich_analysis.one_thing_focus ? `
+                            <div class="one-thing-focus">
+                                <h3>🎯 One Thing Focus</h3>
+                                <p>${escapeHtml(latestCheck.rich_analysis.one_thing_focus)}</p>
+                            </div>
+                        ` : ''}
+                        
+                        ${latestCheck.to_sort && latestCheck.to_sort.length > 0 ? `
+                            <div class="check-list to-sort-list">
+                                <h3>To Sort ${latestCheck.rich_analysis && latestCheck.rich_analysis.time_estimate ? `<span class="time-estimate">⏱️ ${latestCheck.rich_analysis.time_estimate}</span>` : ''}</h3>
+                                <p class="to-sort-hint">✅ Check off items as you tidy them to earn XP!</p>
+                                <ul>
+                                    ${latestCheck.to_sort.map((item, index) => {
+                                        const isSorted = typeof item === 'object' && item.sorted;
+                                        const itemText = typeof item === 'string' ? item : (item.item || item);
+                                        return `
+                                        <li class="priority-${item.priority || 'normal'} ${isSorted ? 'item-sorted' : ''}">
+                                            <label class="sort-item-checkbox">
+                                                <input type="checkbox" 
+                                                    onchange="markItemSorted(${index}, this)" 
+                                                    ${isSorted ? 'checked disabled' : ''}>
+                                                <span class="checkmark"></span>
+                                            </label>
+                                            <span class="item-text ${isSorted ? 'sorted-text' : ''}">
+                                                <span class="item-priority-dot"></span>
+                                                ${escapeHtml(itemText)}
+                                                ${item.location ? '<span class="item-location">(' + escapeHtml(item.location) + ')</span>' : ''}
+                                                ${item.recurring ? '<span class="recurring-badge">🔄 ' + (item.recurrence_count || '') + 'x</span>' : ''}
+                                            </span>
+                                            ${item.quick_fix ? '<span class="quick-fix-tip">💡 ' + escapeHtml(item.quick_fix) + '</span>' : ''}
+                                        </li>
+                                    `}).join('')}
+                                </ul>
+                                <div class="task-actions" style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                    <button onclick="snoozeSpot(${SPOT_ID}, 60)" class="btn btn-secondary btn-small">⏰ Remind me in 1 hour</button>
+                                    <button onclick="snoozeSpot(${SPOT_ID}, 180)" class="btn btn-secondary btn-small">⏰ Remind me in 3 hours</button>
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        ${latestCheck.rich_analysis && latestCheck.rich_analysis.quick_wins && latestCheck.rich_analysis.quick_wins.length > 0 ? `
+                            <div class="quick-wins-section">
+                                <h3>⚡ Quick Wins</h3>
+                                <ul class="quick-wins-list">
+                                    ${latestCheck.rich_analysis.quick_wins.map(win => `
+                                        <li class="quick-win impact-${win.impact || 'medium'}">
+                                            <span class="quick-win-action">${escapeHtml(win.action)}</span>
+                                            <span class="quick-win-time">⏱️ ${win.time_estimate || '1 min'}</span>
+                                        </li>
+                                    `).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+                        
+                        ${latestCheck.looking_good && latestCheck.looking_good.length > 0 ? `
+                            <div class="check-list looking-good-list">
+                                <h3>Looking Good</h3>
+                                <ul>
+                                    ${latestCheck.looking_good.map(item => `
+                                        <li>✓ ${typeof item === 'string' ? escapeHtml(item) : escapeHtml(item.item || item)}</li>
+                                    `).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+                        
+                        ${latestCheck.notes && latestCheck.notes.main ? `
+                            <div class="check-notes">
+                                <p class="notes-main">${escapeHtml(latestCheck.notes.main)}</p>
+                                ${latestCheck.notes.pattern ? `<p class="notes-pattern">📊 ${escapeHtml(latestCheck.notes.pattern)}</p>` : ''}
+                                ${latestCheck.notes.encouragement ? `<p class="notes-encouragement">💪 ${escapeHtml(latestCheck.notes.encouragement)}</p>` : ''}
+                            </div>
+                        ` : ''}
+                        
+                        ${latestCheck.xp_earned ? `
+                            <div class="xp-earned-badge">+${latestCheck.xp_earned} XP</div>
+                        ` : ''}
+                    </div>
+                </div>
+                ` : `
+                <div class="spot-section">
+                    <div class="empty-check">
+                        <p>No checks yet. Click "Check Now" to analyze this spot!</p>
+                    </div>
+                </div>
+                `}
+                
+                <!-- Memory & Patterns Section - visible for all voices -->
+                <div class="spot-section">
+                    <h2>📊 Memory & Patterns</h2>
+                    
+                    <!-- Visual Streak Counter - Self-explanatory UI -->
+                    <div class="streak-visual">
+                        <div class="streak-counter ${spot.current_streak > 0 ? 'streak-active' : 'streak-zero'}">
+                            <span class="streak-fire">${spot.current_streak > 0 ? '🔥'.repeat(Math.min(spot.current_streak, 5)) : '💤'}</span>
+                            <span class="streak-number">Day ${spot.current_streak}</span>
+                            ${spot.current_streak === 0 ? '<span class="streak-start-hint">Tidy up to start!</span>' : ''}
+                            ${spot.current_streak > 0 ? `<span class="streak-keep-going">Keep it going!</span>` : ''}
+                        </div>
+                        ${spot.longest_streak > spot.current_streak ? `
+                            <div class="streak-record">🏆 Personal best: Day ${spot.longest_streak}</div>
+                        ` : ''}
+                    </div>
+                    
+                    <div id="history-graph" class="history-graph">
+                        <h3>Check History (Last 30 Days)</h3>
+                        <div id="graph-container">Loading graph...</div>
+                    </div>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <span class="stat-value">${memory.total_checks}</span>
+                            <span class="stat-label">Total Checks</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-value">${spot.total_resets}</span>
+                            <span class="stat-label">Times Tidied</span>
+                        </div>
+                    </div>
+                    
+                    ${Object.keys(memory.patterns.recurring_items || {}).length > 0 ? `
+                        <div class="patterns-section">
+                            <h3>🔄 Recurring Items</h3>
+                            <p class="form-help">These items keep showing up - maybe they need a dedicated spot?</p>
+                            <ul class="recurring-items-list">
+                                ${Object.entries(memory.patterns.recurring_items).map(([item, count]) => 
+                                    `<li>🔄 ${escapeHtml(item)} <span class="count">(appeared ${count}x)</span></li>`
+                                ).join('')}
+                            </ul>
+                        </div>
+                    ` : `
+                        <div class="patterns-section">
+                            <h3>🔄 Recurring Items</h3>
+                            <p class="form-help">No recurring patterns detected yet. Keep checking!</p>
+                        </div>
+                    `}
+                    
+                    <div class="patterns-meta">
+                        ${memory.patterns.worst_day ? `<p>📅 Messiest day: <strong>${memory.patterns.worst_day}</strong></p>` : '<p>📅 No worst day pattern yet</p>'}
+                        ${memory.patterns.best_day ? `<p>🌟 Cleanest day: <strong>${memory.patterns.best_day}</strong></p>` : '<p>🌟 No best day pattern yet</p>'}
+                        ${memory.patterns.usually_sorted_by ? `<p>⏰ Usually sorted by: <strong>${memory.patterns.usually_sorted_by}</strong></p>` : '<p>⏰ No sorting time pattern yet</p>'}
+                    </div>
+                </div>
+                
+                <!-- Schedule Section -->
+                <div class="spot-section">
+                    <h2>⏰ Auto-Check Schedule</h2>
+                    <div id="schedule-container">
+                        ${renderSchedule(spot.check_schedule)}
+                    </div>
+                    <button onclick="showScheduleEditor()" class="btn btn-secondary btn-small schedule-add-btn">
+                        ${spot.check_schedule && spot.check_schedule.length > 0 ? '✏️ Edit Schedule' : '+ Add Schedule'}
+                    </button>
+                </div>
+                
+                <!-- Full History Section -->
+                <div class="spot-section">
+                    <h2>📜 Full History</h2>
+                    <div id="full-history-container">
+                        <div class="loading">Loading history...</div>
+                    </div>
+                </div>
+                
+                <!-- Edit Spot Section -->
+                <div class="spot-section">
+                    <h2>✏️ Edit Spot</h2>
+                    <div class="edit-actions">
+                        <button onclick="editSpotSettings()" class="btn btn-secondary">Edit Name & Settings</button>
+                    </div>
+                </div>
+                
+                <div class="spot-section danger-zone">
+                    <h2>Danger Zone</h2>
+                    <div class="danger-actions">
+                        <button onclick="deleteSpot(${SPOT_ID})" class="btn btn-danger">🗑️ Delete This Spot</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Load graph data
+        loadHistoryGraph();
+        // Load full history
+        loadFullHistory(1);
+        
+        // If dream state is generating, start polling for updates
+        if (spot.dream_state_generating) {
+            startDreamStatePolling();
+        }
+        
+    } catch (err) {
+        container.innerHTML = `<div class="error">Failed to load spot: ${err.message}</div>`;
+    }
+}
+
+function renderSchedule(schedule) {
+    if (!schedule || schedule.length === 0) {
+        return '<p class="form-help">No schedule configured. Checks are manual only.</p>';
+    }
+    
+    const dayNames = {mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat', sun: 'Sun'};
+    
+    return `
+        <ul class="schedule-list">
+            ${schedule.map((item, idx) => `
+                <li class="schedule-item">
+                    <span class="schedule-time">${item.time}</span>
+                    <span class="schedule-days">${item.days.map(d => dayNames[d] || d).join(', ')}</span>
+                </li>
+            `).join('')}
+        </ul>
+    `;
+}
+
+async function loadHistoryGraph() {
+    const container = document.getElementById('graph-container');
+    
+    try {
+        const data = await api(`/api/spots/${SPOT_ID}/history/graph?days=30`);
+        
+        if (!data.data || data.data.length === 0) {
+            container.innerHTML = '<p class="form-help">No check data for graph yet.</p>';
+            return;
+        }
+        
+        // Build a heatmap calendar (GitHub-style)
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        
+        // Find max for intensity scaling
+        const maxChecks = Math.max(...data.data.map(d => d.total), 1);
+        
+        // Create heatmap HTML
+        let heatmapHTML = '<div class="heatmap-calendar">';
+        
+        // Group by weeks
+        let currentWeek = [];
+        let weekRows = [];
+        
+        data.data.forEach((d, idx) => {
+            const date = new Date(d.date);
+            const dayOfWeek = date.getDay();
+            
+            // Calculate intensity (0-4 scale like GitHub)
+            const intensity = d.total === 0 ? 0 : Math.min(4, Math.ceil((d.total / maxChecks) * 4));
+            
+            // Build day cell
+            const dayCell = {
+                date: d.date,
+                total: d.total,
+                sorted: d.sorted,
+                needs_attention: d.needs_attention,
+                intensity: intensity,
+                dayOfWeek: dayOfWeek
+            };
+            
+            currentWeek.push(dayCell);
+            
+            // If Saturday (6) or last day, complete the week
+            if (dayOfWeek === 6 || idx === data.data.length - 1) {
+                weekRows.push([...currentWeek]);
+                currentWeek = [];
+            }
+        });
+        
+        // Render weeks as rows
+        weekRows.forEach(week => {
+            heatmapHTML += '<div class="heatmap-week">';
+            week.forEach(day => {
+                const title = `${day.date}: ${day.total} check(s) (${day.sorted} sorted, ${day.needs_attention} attention)`;
+                heatmapHTML += `
+                    <div class="heatmap-day intensity-${day.intensity}" title="${title}">
+                        <span class="heatmap-day-label">${new Date(day.date).getDate()}</span>
+                    </div>
+                `;
+            });
+            heatmapHTML += '</div>';
+        });
+        
+        heatmapHTML += '</div>';
+        
+        container.innerHTML = `
+            ${heatmapHTML}
+            <div class="heatmap-legend">
+                <span class="heatmap-legend-label">Less</span>
+                <div class="heatmap-legend-item intensity-0"></div>
+                <div class="heatmap-legend-item intensity-1"></div>
+                <div class="heatmap-legend-item intensity-2"></div>
+                <div class="heatmap-legend-item intensity-3"></div>
+                <div class="heatmap-legend-item intensity-4"></div>
+                <span class="heatmap-legend-label">More</span>
+            </div>
+        `;
+    } catch (err) {
+        container.innerHTML = '<p class="form-help">Could not load graph.</p>';
+    }
+}
+
+async function loadFullHistory(page) {
+    const container = document.getElementById('full-history-container');
+    currentHistoryPage = page;
+    
+    try {
+        const data = await api(`/api/spots/${SPOT_ID}/history?page=${page}&per_page=10`);
+        
+        if (!data.checks || data.checks.length === 0) {
+            container.innerHTML = '<p class="form-help">No check history yet.</p>';
+            return;
+        }
+        
+        const pagination = data.pagination;
+        
+        container.innerHTML = `
+            <div class="checks-list">
+                ${data.checks.map((check, idx) => `
+                    <div class="check-entry ${check.status === 'sorted' ? 'check-sorted' : 'check-needs-attention'}">
+                        <div class="check-entry-header" onclick="toggleCheckDetails('check-${check.id}')">
+                            <div class="check-entry-summary">
+                                <span class="check-status">${check.status === 'sorted' ? '✅' : '⚠️'}</span>
+                                <span class="check-time">${formatTime(check.timestamp)}</span>
+                                <span class="check-items-count">${(check.to_sort || []).length} items</span>
+                            </div>
+                            <span class="check-expand-icon">▼</span>
+                        </div>
+                        <div id="check-${check.id}" class="check-entry-details" style="display: none;">
+                            ${(check.to_sort || []).length > 0 ? `
+                                <div class="check-items-list">
+                                    <h4>Items Found:</h4>
+                                    <ul>
+                                        ${check.to_sort.map(item => {
+                                            const itemText = typeof item === 'string' ? item : (item.item || item);
+                                            const isSorted = typeof item === 'object' && item.sorted;
+                                            return '<li class="' + (isSorted ? 'item-was-sorted' : '') + '">' + 
+                                                (isSorted ? '✓ ' : '• ') + escapeHtml(itemText) + '</li>';
+                                        }).join('')}
+                                    </ul>
+                                </div>
+                            ` : '<p class="no-items">No items to sort - spot was clean!</p>'}
+                            ${check.notes && check.notes.main ? `
+                                <div class="check-notes-detail">
+                                    <p>${escapeHtml(check.notes.main)}</p>
+                                </div>
+                            ` : ''}
+                            <div class="check-entry-actions">
+                                <button onclick="deleteCheck(${check.id})" class="btn btn-small btn-muted">🗑️ Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+            <div class="history-pagination">
+                <button onclick="loadFullHistory(${page - 1})" class="btn btn-small btn-secondary" ${!pagination.has_prev ? 'disabled' : ''}>← Prev</button>
+                <span class="history-pagination-info">Page ${pagination.page} of ${pagination.total_pages} (${pagination.total} total)</span>
+                <button onclick="loadFullHistory(${page + 1})" class="btn btn-small btn-secondary" ${!pagination.has_next ? 'disabled' : ''}>Next →</button>
+            </div>
+        `;
+    } catch (err) {
+        container.innerHTML = `<p class="error">Failed to load history: ${err.message}</p>`;
+    }
+}
+
+function toggleCheckDetails(checkId) {
+    const details = document.getElementById(checkId);
+    const header = details.previousElementSibling;
+    const icon = header.querySelector('.check-expand-icon');
+    
+    if (details.style.display === 'none') {
+        details.style.display = 'block';
+        icon.textContent = '▲';
+    } else {
+        details.style.display = 'none';
+        icon.textContent = '▼';
+    }
+}
+
+async function deleteCheck(checkId) {
+    if (!confirm('Delete this check entry?')) return;
+    
+    try {
+        await api(`/api/spots/${SPOT_ID}/checks/${checkId}`, { method: 'DELETE' });
+        showToast('Check deleted', 'success');
+        // Refresh history and graph together
+        refreshHistoryData();
+    } catch (err) {
+        showToast('Delete failed: ' + err.message, 'error');
+    }
+}
+
+async function clearHistory() {
+    if (!confirm('Clear ALL check history for this spot? This cannot be undone.')) return;
+    
+    try {
+        const result = await api(`/api/spots/${SPOT_ID}/history`, { method: 'DELETE' });
+        showToast(`Cleared ${result.deleted_count} check(s)`, 'success');
+        // Refresh all data since memory stats will change
+        loadSpot();
+    } catch (err) {
+        showToast('Clear failed: ' + err.message, 'error');
+    }
+}
+
+// Debounced refresh for history data
+let refreshTimeout = null;
+function refreshHistoryData() {
+    if (refreshTimeout) clearTimeout(refreshTimeout);
+    refreshTimeout = setTimeout(() => {
+        loadFullHistory(currentHistoryPage);
+        loadHistoryGraph();
+    }, 100);
+}
+
+function showScheduleEditor() {
+    // Simple prompt-based schedule editor
+    const timeStr = prompt('Enter check time (HH:MM format, e.g., 09:00):', '09:00');
+    if (!timeStr) return;
+    
+    const daysStr = prompt('Enter days (comma-separated: mon,tue,wed,thu,fri,sat,sun):', 'mon,tue,wed,thu,fri');
+    if (!daysStr) return;
+    
+    const days = daysStr.split(',').map(d => d.trim().toLowerCase());
+    
+    updateSchedule([{ time: timeStr, days: days }]);
+}
+
+async function updateSchedule(schedule) {
+    try {
+        await api(`/api/spots/${SPOT_ID}/schedule`, {
+            method: 'PUT',
+            body: JSON.stringify({ schedule: schedule })
+        });
+        showToast('Schedule updated', 'success');
+        loadSpot();
+    } catch (err) {
+        showToast('Schedule update failed: ' + err.message, 'error');
+    }
+}
+
+function formatTime(isoString) {
+    const date = new Date(isoString);
+    return date.toLocaleString();
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+// Upload functionality
+let uploadedFile = null;
+
+function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (file) {
+        uploadedFile = file;
+        showUploadPreview(file);
+    }
+}
+
+function showUploadPreview(file) {
+    const previewContainer = document.getElementById('upload-preview');
+    if (!previewContainer) return;
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        previewContainer.innerHTML = `
+            <img src="${e.target.result}" alt="Upload preview">
+            <p style="margin-top: 0.5rem; font-size: 0.9rem;">${escapeHtml(file.name)}</p>
+            <button onclick="checkWithUploadedImage()" class="btn btn-primary" style="margin-top: 0.75rem;">
+                📷 Check This Photo
+            </button>
+        `;
+        previewContainer.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+}
+
+function triggerPhotoUpload() {
+    document.getElementById('photo-upload').click();
+}
+
+function triggerCameraCapture() {
+    // Create a temporary input with capture attribute for mobile
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.capture = 'environment';
+    input.onchange = (e) => handleFileSelect(e);
+    input.click();
+}
+
+async function checkWithUploadedImage() {
+    if (!uploadedFile) {
+        showToast('Please select an image first', 'error');
+        return;
+    }
+    
+    showToast('Analyzing uploaded image...', 'info');
+    
+    const formData = new FormData();
+    formData.append('image', uploadedFile);
+    
+    try {
+        const response = await fetch(`${INGRESS_PATH}/api/spots/${SPOT_ID}/check-upload`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Upload failed');
+        }
+        
+        const result = await response.json();
+        
+        if (result.error_message) {
+            showToast('Error: ' + result.error_message, 'error');
+        } else if (result.status === 'sorted') {
+            showToast('Looking good! ✅', 'success');
+        } else {
+            showToast(`Found ${result.to_sort?.length || 0} items to sort`, 'info');
+        }
+        
+        // Clear upload and reload
+        uploadedFile = null;
+        document.getElementById('photo-upload').value = '';
+        loadSpot();
+        
+    } catch (err) {
+        showToast('Check failed: ' + err.message, 'error');
+    }
+}
+
+// Drag and drop handling
+function setupDragAndDrop() {
+    const uploadSection = document.querySelector('.upload-section');
+    if (!uploadSection) return;
+    
+    uploadSection.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadSection.classList.add('drag-over');
+    });
+    
+    uploadSection.addEventListener('dragleave', () => {
+        uploadSection.classList.remove('drag-over');
+    });
+    
+    uploadSection.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadSection.classList.remove('drag-over');
+        
+        const file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith('image/')) {
+            uploadedFile = file;
+            showUploadPreview(file);
+        } else {
+            showToast('Please drop an image file', 'error');
+        }
+    });
+}
+
+// Dream State Generation
+let dreamStatePollingInterval = null;
+
+function stopDreamStatePolling() {
+    // Stop any existing polling and clean up
+    if (dreamStatePollingInterval) {
+        clearInterval(dreamStatePollingInterval);
+        dreamStatePollingInterval = null;
+    }
+}
+
+function startDreamStatePolling() {
+    // Clear any existing polling first
+    stopDreamStatePolling();
+    
+    // Poll to check if dream state is ready
+    dreamStatePollingInterval = setInterval(async () => {
+        try {
+            const data = await api(`/api/spots/${SPOT_ID}`);
+            const spot = data.spot;
+            
+            // Stop polling if:
+            // 1. Image is ready (success case)
+            // 2. Generation stopped without image (error case - fail silently per requirements)
+            if (spot.dream_state_image || !spot.dream_state_generating) {
+                stopDreamStatePolling();
+                loadSpot(); // Reload to show the image (or nothing if error/stopped)
+            }
+        } catch (err) {
+            // If polling fails, stop polling to prevent resource waste
+            console.error('Dream state polling error:', err);
+            stopDreamStatePolling();
+        }
+    }, DREAM_STATE_POLLING_INTERVAL);
+}
+
+async function generateDreamState() {
+    showToast('✨ Generating your dream state image...', 'info');
+    
+    try {
+        const result = await api(`/api/spots/${SPOT_ID}/generate-dream-state`, { method: 'POST' });
+        
+        if (result.status === 'success') {
+            showToast('✨ Dream state generated! Refreshing...', 'success');
+            // Reload to show the new image
+            loadSpot();
+        } else if (result.status === 'generating') {
+            showToast('Dream state is already being generated. Please wait...', 'info');
+            // Start polling to check when it's ready
+            startDreamStatePolling();
+        } else {
+            showToast(result.message || 'Failed to generate dream state', 'error');
+        }
+    } catch (err) {
+        showToast('Generation failed: ' + err.message, 'error');
+    }
+}
+
+// Retry dream state generation (called from failure state button)
+async function retryDreamState(spotId) {
+    showToast('✨ Retrying dream state generation...', 'info');
+    
+    try {
+        const result = await api(`/api/spots/${spotId}/generate-dream-state`, { method: 'POST' });
+        
+        if (result.status === 'success') {
+            showToast('✨ Dream state generated! Refreshing...', 'success');
+            // Reload to show the new image
+            loadSpot();
+        } else if (result.status === 'generating') {
+            showToast('Dream state is already being generated. Please wait...', 'info');
+            // Start polling to check when it's ready
+            startDreamStatePolling();
+        } else {
+            showToast(result.message || 'Failed to generate dream state', 'error');
+        }
+    } catch (err) {
+        showToast('Generation failed: ' + err.message, 'error');
+    }
+}
+
+// Mark item as sorted
+async function markItemSorted(itemIndex, checkbox) {
+    try {
+        const result = await api(`/api/spots/${SPOT_ID}/mark-item-sorted`, {
+            method: 'POST',
+            body: JSON.stringify({ item_index: itemIndex })
+        });
+        
+        if (result.success) {
+            // Show success with XP earned
+            showToast(`${result.message} +${result.xp_earned} XP`, 'success');
+            
+            // Disable the checkbox
+            checkbox.disabled = true;
+            
+            // Add sorted styling to the parent list item
+            const listItem = checkbox.closest('li');
+            if (listItem) {
+                listItem.classList.add('item-sorted');
+                const textSpan = listItem.querySelector('.item-text');
+                if (textSpan) {
+                    textSpan.classList.add('sorted-text');
+                }
+            }
+            
+            // If all items sorted, reload to update streak
+            if (result.all_sorted) {
+                setTimeout(() => {
+                    showToast('🎉 All items sorted! Streak updated!', 'success');
+                    loadSpot();
+                }, 1000);
+            }
+        }
+    } catch (err) {
+        showToast('Failed to mark item: ' + err.message, 'error');
+        checkbox.checked = false;
+    }
+}
+
+// Edit Spot Settings
+async function editSpotSettings() {
+    const data = await api(`/api/spots/${SPOT_ID}`);
+    const spot = data.spot;
+    
+    // Simple prompt-based editing (can be enhanced with a modal later)
+    const newName = prompt('Edit Spot Name:', spot.name);
+    if (newName === null) return; // User clicked Cancel
+    
+    // Fetch personalities for selection
+    const persData = await api('/api/personalities');
+    const personalities = persData.personalities;
+    
+    // Show personality options
+    let persMessage = 'Select AI Coach Personality:\n';
+    personalities.forEach((p, idx) => {
+        persMessage += `${idx + 1}. ${p.emoji} ${p.name} - ${p.description}\n`;
+    });
+    persMessage += '\nEnter number (or press Cancel to keep current):';
+    
+    const persChoice = prompt(persMessage);
+    let newPersonality = spot.personality;
+    if (persChoice && persChoice.trim()) {
+        const idx = parseInt(persChoice) - 1;
+        if (idx >= 0 && idx < personalities.length) {
+            newPersonality = personalities[idx].key;
+        }
+    }
+    
+    // Update spot
+    try {
+        await api(`/api/spots/${SPOT_ID}`, {
+            method: 'PUT',
+            body: JSON.stringify({
+                name: newName || spot.name, // Keep current name if user entered empty string
+                personality: newPersonality
+            })
+        });
+        showToast('Spot updated!', 'success');
+        loadSpot();
+    } catch (err) {
+        showToast('Update failed: ' + err.message, 'error');
+    }
+}
+
+// Call setupDragAndDrop after loading spot
+const originalLoadSpot = loadSpot;
+loadSpot = async function() {
+    await originalLoadSpot.call(this);
+    setupDragAndDrop();
+};
+
+// Cleanup polling on page unload
+window.addEventListener('beforeunload', () => {
+    stopDreamStatePolling();
+});
+
+loadSpot();
+</script>
+{% endblock %}

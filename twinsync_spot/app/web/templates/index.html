@@ -1,0 +1,496 @@
+{% extends "base.html" %}
+
+{% block title %}My Spots - TwinSync Spot{% endblock %}
+
+{% block content %}
+<style>
+/* Gamification Bar */
+.gamification-bar {
+    background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-surface-alt) 100%);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+.gamification-level {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.level-emoji {
+    font-size: 2rem;
+}
+.level-info {
+    display: flex;
+    flex-direction: column;
+}
+.level-name {
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+.level-number {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+.xp-section {
+    flex: 1;
+    min-width: 150px;
+}
+.xp-bar {
+    height: 10px;
+    background: var(--color-surface-alt);
+    border-radius: 5px;
+    overflow: hidden;
+    margin-bottom: 0.25rem;
+}
+.xp-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ffd700, #ffb300);
+    border-radius: 5px;
+    transition: width 0.3s ease;
+}
+.xp-text {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+.daily-challenge {
+    background: var(--color-surface-alt);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.challenge-emoji {
+    font-size: 1.5rem;
+}
+.challenge-info {
+    flex: 1;
+}
+.challenge-name {
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+.challenge-reward {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+}
+.challenge-complete {
+    opacity: 0.6;
+    text-decoration: line-through;
+}
+
+/* New user message */
+.new-user-message {
+    background: linear-gradient(135deg, rgba(45, 212, 191, 0.1), rgba(45, 212, 191, 0.05));
+    border: 1px solid var(--color-primary);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    color: var(--color-text);
+}
+
+/* Enhanced Empty State */
+.empty-state-enhanced {
+    text-align: center;
+    padding: 2rem;
+}
+
+.empty-hero {
+    margin-bottom: 2rem;
+}
+
+.empty-icon {
+    font-size: 5rem;
+    margin-bottom: 1rem;
+}
+
+.empty-title {
+    font-size: 1.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.empty-desc {
+    color: var(--color-text-muted);
+    font-size: 1.1rem;
+    max-width: 500px;
+    margin: 0 auto 1.5rem;
+}
+
+.empty-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+}
+
+.personality-preview-section {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--color-border);
+}
+
+.personality-preview-section h3 {
+    margin-bottom: 1rem;
+    color: var(--color-text-muted);
+}
+
+.personality-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.personality-preview-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    text-align: center;
+}
+
+.personality-preview-emoji {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.personality-preview-name {
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.how-it-works {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--color-border);
+}
+
+.how-it-works h3 {
+    margin-bottom: 1rem;
+    color: var(--color-text-muted);
+}
+
+.steps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.step-card {
+    background: var(--color-surface);
+    border-radius: var(--radius);
+    padding: 1rem;
+    text-align: center;
+}
+
+.step-number {
+    width: 32px;
+    height: 32px;
+    background: var(--color-primary);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin: 0 auto 0.75rem;
+}
+
+.step-title {
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
+
+.step-desc {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+</style>
+
+<div class="page-header">
+    <h1>My Spots</h1>
+    <div class="header-actions">
+        <button onclick="checkAllSpots()" class="btn btn-secondary">🔄 Check All</button>
+        <button onclick="resetAllNeedingAttention()" class="btn btn-success btn-small" id="reset-all-btn" style="display: none;">✅ Reset All</button>
+    </div>
+</div>
+
+<!-- Always show gamification bar -->
+<div id="gamification-bar" class="gamification-bar">
+    <!-- Populated by JavaScript -->
+</div>
+
+<div id="spots-container" class="spots-grid">
+    <div class="loading">Loading spots...</div>
+</div>
+
+<div id="empty-state" class="empty-state-enhanced" style="display: none;">
+    <div class="empty-hero">
+        <div class="empty-icon">📍✨</div>
+        <h2 class="empty-title">Welcome to TwinSync Spot!</h2>
+        <p class="empty-desc">
+            Track any space with AI-powered visual checks. Get fun, personality-packed feedback!
+        </p>
+    </div>
+    
+    <div class="empty-actions">
+        <a href="{{ ingress_path + '/wizard' if ingress_path else '/wizard' }}" class="btn btn-primary">🧙‍♂️ Start Setup Wizard</a>
+        <a href="{{ ingress_path + '/add' if ingress_path else '/add' }}" class="btn btn-secondary">+ Add Spot Manually</a>
+    </div>
+    
+    <div class="personality-preview-section">
+        <h3>🎭 Meet Your AI Personalities</h3>
+        <div id="personality-preview-grid" class="personality-preview-grid">
+            <!-- Populated by JavaScript -->
+        </div>
+    </div>
+    
+    <div class="how-it-works">
+        <h3>📖 How It Works</h3>
+        <div class="steps-grid">
+            <div class="step-card">
+                <div class="step-number">1</div>
+                <div class="step-title">Define a Spot</div>
+                <div class="step-desc">Pick a camera and describe how the space should look</div>
+            </div>
+            <div class="step-card">
+                <div class="step-number">2</div>
+                <div class="step-title">Check It</div>
+                <div class="step-desc">AI analyzes the camera view and gives feedback</div>
+            </div>
+            <div class="step-card">
+                <div class="step-number">3</div>
+                <div class="step-title">Tidy Up</div>
+                <div class="step-desc">Complete tasks and verify with a photo</div>
+            </div>
+            <div class="step-card">
+                <div class="step-number">4</div>
+                <div class="step-title">Build Streaks</div>
+                <div class="step-desc">Earn XP with each reset - no daily pressure!</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const INGRESS_PATH = "{{ ingress_path }}";
+
+async function loadGamification() {
+    const container = document.getElementById('gamification-bar');
+    
+    try {
+        const data = await api('/api/gamification');
+        
+        // Always show gamification bar
+        container.style.display = 'flex';
+        
+        const challengeCompleted = data.daily_challenge_completed === new Date().toISOString().split('T')[0];
+        const isNewUser = data.xp_total === 0;
+        
+        container.innerHTML = `
+            <div class="gamification-level">
+                <span class="level-emoji">${data.level_emoji}</span>
+                <div class="level-info">
+                    <span class="level-name">${data.level_name}</span>
+                    <span class="level-number">Level ${data.level}</span>
+                </div>
+            </div>
+            <div class="xp-section">
+                <div class="xp-bar">
+                    <div class="xp-fill" style="width: ${data.xp_progress_percent}%"></div>
+                </div>
+                <span class="xp-text">${data.xp_total} XP • ${data.xp_to_next_level} to next level</span>
+            </div>
+            ${isNewUser ? `
+                <div class="new-user-message">
+                    ✨ <strong>Start your journey!</strong> Check and reset spots to earn XP.
+                </div>
+            ` : `
+                <div class="daily-challenge ${challengeCompleted ? 'challenge-complete' : ''}">
+                    <span class="challenge-emoji">${data.daily_challenge.emoji}</span>
+                    <div class="challenge-info">
+                        <div class="challenge-name">${data.daily_challenge.name}</div>
+                        <div class="challenge-reward">${challengeCompleted ? '✅ Completed!' : '+' + data.daily_challenge.xp_reward + ' XP'}</div>
+                    </div>
+                </div>
+            `}
+        `;
+    } catch (err) {
+        console.error('Failed to load gamification:', err);
+        // Show a basic gamification bar even on error
+        container.innerHTML = `
+            <div class="gamification-level">
+                <span class="level-emoji">🌱</span>
+                <div class="level-info">
+                    <span class="level-name">Tidy Novice</span>
+                    <span class="level-number">Level 1</span>
+                </div>
+            </div>
+            <div class="xp-section">
+                <div class="xp-bar">
+                    <div class="xp-fill" style="width: 0%"></div>
+                </div>
+                <span class="xp-text">0 XP • 250 to next level</span>
+            </div>
+            <div class="new-user-message">
+                ✨ <strong>Start your journey!</strong> Check and reset spots to earn XP.
+            </div>
+        `;
+        container.style.display = 'flex';
+    }
+}
+
+async function loadPersonalityPreviews() {
+    const container = document.getElementById('personality-preview-grid');
+    if (!container) return;
+    
+    try {
+        const data = await api('/api/personalities');
+        container.innerHTML = data.personalities.map(p => `
+            <div class="personality-preview-card">
+                <div class="personality-preview-emoji">${p.emoji}</div>
+                <div class="personality-preview-name">${p.name}</div>
+            </div>
+        `).join('');
+    } catch (err) {
+        console.error('Failed to load personalities:', err);
+    }
+}
+
+async function loadSpots() {
+    const container = document.getElementById('spots-container');
+    const emptyState = document.getElementById('empty-state');
+    const resetAllBtn = document.getElementById('reset-all-btn');
+    
+    // Also load gamification
+    loadGamification();
+    
+    try {
+        const data = await api('/api/spots');
+        
+        if (!data.spots || data.spots.length === 0) {
+            container.style.display = 'none';
+            emptyState.style.display = 'block';
+            resetAllBtn.style.display = 'none';
+            loadPersonalityPreviews();
+            return;
+        }
+        
+        container.style.display = 'grid';
+        emptyState.style.display = 'none';
+        
+        // Show Reset All button if any spots need attention
+        const needsAttentionCount = data.spots.filter(s => s.status === 'needs_attention').length;
+        resetAllBtn.style.display = needsAttentionCount > 0 ? 'inline-flex' : 'none';
+        
+        container.innerHTML = data.spots.map(spot => renderSpotCard(spot)).join('');
+        
+    } catch (err) {
+        container.innerHTML = `<div class="error">Failed to load spots: ${err.message}</div>`;
+    }
+}
+
+function renderSpotCard(spot) {
+    const statusClass = spot.status === 'sorted' ? 'status-sorted' : 
+                        spot.status === 'needs_attention' ? 'status-needs-attention' :
+                        spot.status === 'snoozed' ? 'status-snoozed' : 'status-unknown';
+    
+    const statusEmoji = spot.status === 'sorted' ? '✅' :
+                        spot.status === 'needs_attention' ? '⚠️' :
+                        spot.status === 'snoozed' ? '😴' : '❓';
+    
+    const statusText = spot.status === 'sorted' ? 'Looking Good' :
+                       spot.status === 'needs_attention' ? 'Needs Attention' :
+                       spot.status === 'snoozed' ? 'Snoozed' : 'Not Checked';
+    
+    // Camera vs Upload icon
+    const cameraIcon = spot.camera_entity && spot.camera_entity.trim() ? '📷' : '📤';
+    const cameraText = spot.camera_entity && spot.camera_entity.trim() ? 
+                       escapeHtml(spot.camera_entity) : 
+                       'Upload-only';
+    
+    // Memory summary badges
+    let memoryBadges = '';
+    if (spot.recurring_items_count > 0) {
+        memoryBadges += `<span class="memory-badge recurring-badge-small">🔄 ${spot.recurring_items_count} recurring</span>`;
+    }
+    if (spot.has_schedule) {
+        memoryBadges += `<span class="memory-badge schedule-badge">⏰ Scheduled</span>`;
+    }
+    
+    // Personality emoji badge
+    const personalityBadge = spot.personality_emoji ? 
+        `<span class="memory-badge">${spot.personality_emoji}</span>` : '';
+    
+    return `
+        <div class="spot-card ${statusClass}" onclick="window.location='${INGRESS_PATH}/spot/${spot.id}'">
+            <div class="spot-header">
+                <h3 class="spot-name">${personalityBadge} ${escapeHtml(spot.name)}</h3>
+                <span class="spot-status">${statusEmoji} ${statusText}</span>
+            </div>
+            
+            <div class="spot-meta">
+                <span class="spot-camera">${cameraIcon} ${cameraText}</span>
+                ${spot.last_check ? `<span class="spot-last-check">Last: ${formatTime(spot.last_check)}</span>` : ''}
+            </div>
+            
+            ${memoryBadges ? `<div class="spot-memory-badges">${memoryBadges}</div>` : ''}
+            
+            <div class="spot-streak">
+                🔥 Streak: ${spot.current_streak} day${spot.current_streak !== 1 ? 's' : ''}
+                ${spot.longest_streak > spot.current_streak ? `<span class="best-streak">(best: ${spot.longest_streak})</span>` : ''}
+            </div>
+            
+            <div class="spot-actions" onclick="event.stopPropagation()">
+                <button onclick="window.location='${INGRESS_PATH}/spot/${spot.id}'" class="btn btn-primary">📸 Snap &amp; Check</button>
+            </div>
+        </div>
+    `;
+}
+
+async function resetAllNeedingAttention() {
+    if (!confirm('Reset all spots that need attention?')) {
+        return;
+    }
+    
+    try {
+        const result = await api('/api/reset-all-needing-attention', { method: 'POST' });
+        showToast(`Reset ${result.reset_count} spot(s)`, 'success');
+        loadSpots();
+    } catch (err) {
+        showToast('Reset all failed: ' + err.message, 'error');
+    }
+}
+
+function formatTime(isoString) {
+    const date = new Date(isoString);
+    const now = new Date();
+    const diff = now - date;
+    
+    if (diff < 60000) return 'just now';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+    return date.toLocaleDateString();
+}
+
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+// Load spots on page load
+loadSpots();
+</script>
+{% endblock %}

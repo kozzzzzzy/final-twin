@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>{% block title %}TwinSync Spot{% endblock %}</title>
+    {% set static_css = ingress_path + '/static/css/style.css' if ingress_path else '/static/css/style.css' %}
+    <link rel="stylesheet" href="{{ static_css }}">
+    <script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHez7Nber0dLdnfIcc0eXQP4RLtEd4G7pXsL/" crossorigin="anonymous"></script>
+</head>
+<body hx-boost="true">
+    <header class="header">
+        <div class="header-content">
+            <a href="{{ ingress_path + '/' if ingress_path else '/' }}" class="logo">
+                <span class="logo-icon">📍</span>
+                <span class="logo-text">TwinSync Spot</span>
+            </a>
+            <button class="nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false">
+                <span class="nav-toggle__icon" aria-hidden="true">☰</span>
+            </button>
+            <nav class="nav">
+                <a href="{{ ingress_path + '/' if ingress_path else '/' }}" class="nav-link">Spots</a>
+                <a href="{{ ingress_path + '/add' if ingress_path else '/add' }}" class="nav-link nav-link-add">+ Add Spot</a>
+                <a href="{{ ingress_path + '/settings' if ingress_path else '/settings' }}" class="nav-link">⚙️</a>
+                <button class="nav-link theme-toggle" type="button" id="theme-toggle" aria-label="Toggle color theme">
+                    <span class="theme-toggle__icon" aria-hidden="true">🌙</span>
+                    <span class="theme-toggle__label">Dark</span>
+                </button>
+            </nav>
+        </div>
+    </header>
+    
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+    
+    <div id="toast-container"></div>
+    
+    {% set static_js = ingress_path + '/static/js/app.js' if ingress_path else '/static/js/app.js' %}
+    <script src="{{ static_js }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

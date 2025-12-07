@@ -1,0 +1,619 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - TwinSync Spot{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Settings</h1>
+</div>
+
+<div class="settings-content">
+    <div class="settings-section">
+        <h2>🔗 Connections</h2>
+        <p class="section-description">Configure Home Assistant and Gemini API connections. All settings are stored securely.</p>
+        
+        <div class="form-group">
+            <label for="ha-url">Home Assistant URL</label>
+            <input type="text" id="ha-url" placeholder="http://192.168.1.100:8123" autocomplete="url">
+            <small class="form-help">
+                Your Home Assistant URL (e.g., http://homeassistant.local:8123)
+            </small>
+        </div>
+        
+        <div class="form-group">
+            <label for="ha-token">Home Assistant Token</label>
+            <input type="text" id="ha-token" placeholder="Enter your long-lived access token" autocomplete="off">
+            <small class="form-help">
+                Create a token: HA → Profile → Security → Long-Lived Access Tokens → Create Token
+            </small>
+        </div>
+        
+        <div class="form-group">
+            <label for="gemini-key">Gemini API Key</label>
+            <input type="text" id="gemini-key" placeholder="Enter your Gemini API key" autocomplete="off">
+            <small class="form-help">
+                <a href="https://makersuite.google.com/app/apikey" target="_blank">Get a free Gemini API key →</a>
+                Powers AI analysis. Note: Gemini's free tier for image generation is limited.
+            </small>
+        </div>
+        
+        <div class="form-group">
+            <label for="huggingface-key">Hugging Face API Key (for Tidy Preview)</label>
+            <input type="text" id="huggingface-key" placeholder="Enter your Hugging Face API key" autocomplete="off">
+            <small class="form-help">
+                <a href="https://huggingface.co/settings/tokens" target="_blank">Get a FREE Hugging Face API key →</a>
+                Uses Stable Diffusion XL for image generation - completely FREE!
+            </small>
+        </div>
+        
+        <div class="form-group">
+            <label for="replicate-key">Replicate API Key (for Tidy Preview)</label>
+            <input type="text" id="replicate-key" placeholder="Enter your Replicate API key" autocomplete="off">
+            <small class="form-help">
+                <a href="https://replicate.com/account/api-tokens" target="_blank">Get a FREE Replicate API key →</a>
+                Creates the cartoon version of your room using real img2img transformation!
+            </small>
+        </div>
+        
+        <div class="form-group">
+            <label for="deepai-key">DeepAI API Key (optional fallback)</label>
+            <input type="text" id="deepai-key" placeholder="Enter your DeepAI API key" autocomplete="off">
+            <small class="form-help">
+                <a href="https://deepai.org/machine-learning-model/text2img" target="_blank">Get a DeepAI API key →</a>
+                Used as final fallback for Tidy Preview generation.
+            </small>
+        </div>
+        
+        <div class="settings-actions">
+            <button onclick="saveAllSettings()" class="btn btn-primary">💾 Save All Settings</button>
+            <button onclick="testConnections()" class="btn btn-secondary">🔍 Test Connections</button>
+        </div>
+    </div>
+
+    <div class="settings-section">
+        <h2>📊 Connection Status</h2>
+        <div class="status-card">
+            <div class="status-item">
+                <span class="status-label">Home Assistant:</span>
+                <span class="status-value" id="ha-status">Checking...</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Cameras Found:</span>
+                <span class="status-value" id="camera-count">-</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Gemini API (Analysis + Tidy Preview):</span>
+                <span class="status-value" id="gemini-status">Checking...</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Mode:</span>
+                <span class="status-value" id="mode-status">{{ mode | title }}</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="settings-section">
+        <h2>🎭 AI Personality</h2>
+        <p class="section-description">Choose how the AI talks to you during spot checks. Each personality has its own unique voice!</p>
+        
+        <div class="form-group">
+            <label for="personality">Personality</label>
+            <select id="personality" class="form-select">
+                <option value="polish_grandma">👵🇵🇱 Babcia Krysia - Loving Polish grandma</option>
+                <option value="pirate">🏴‍☠️ Captain Tidybeard - Salty sea captain</option>
+                <option value="zen_master">🧘 Master Kai - Calm zen master</option>
+                <option value="sassy_friend">💅 Taylor - Your honest bestie</option>
+                <option value="passive_aggressive_robot">🤖 CLEAN-3000 - Definitely NOT annoyed</option>
+                <option value="sports_coach">🏆 Coach Murphy - High-energy coach</option>
+            </select>
+            <small class="form-help">This affects how the AI phrases its feedback</small>
+        </div>
+    </div>
+    
+    <div class="settings-section">
+        <h2>⚡ Energy Settings</h2>
+        <p class="section-description">Configure how TwinSync adapts to your energy levels throughout the day.</p>
+        
+        <div class="form-group">
+            <label>Energy Rhythm</label>
+            <div class="radio-group">
+                <label class="radio-label">
+                    <input type="radio" name="energy-rhythm" value="early_bird">
+                    🌅 Early Bird - Most productive in the morning
+                </label>
+                <label class="radio-label">
+                    <input type="radio" name="energy-rhythm" value="normal">
+                    ☀️ Normal - Standard 9-5 energy
+                </label>
+                <label class="radio-label">
+                    <input type="radio" name="energy-rhythm" value="night_owl">
+                    🦉 Night Owl - Peak energy in evening
+                </label>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>Crash Times</label>
+            <p class="form-help">Select hours when you typically have low energy (e.g., post-lunch slump)</p>
+            <div class="checkbox-grid" id="crash-times-grid">
+                <label class="checkbox-label"><input type="checkbox" value="6"> 6 AM</label>
+                <label class="checkbox-label"><input type="checkbox" value="7"> 7 AM</label>
+                <label class="checkbox-label"><input type="checkbox" value="8"> 8 AM</label>
+                <label class="checkbox-label"><input type="checkbox" value="9"> 9 AM</label>
+                <label class="checkbox-label"><input type="checkbox" value="10"> 10 AM</label>
+                <label class="checkbox-label"><input type="checkbox" value="11"> 11 AM</label>
+                <label class="checkbox-label"><input type="checkbox" value="12"> 12 PM</label>
+                <label class="checkbox-label"><input type="checkbox" value="13"> 1 PM</label>
+                <label class="checkbox-label"><input type="checkbox" value="14"> 2 PM</label>
+                <label class="checkbox-label"><input type="checkbox" value="15"> 3 PM</label>
+                <label class="checkbox-label"><input type="checkbox" value="16"> 4 PM</label>
+                <label class="checkbox-label"><input type="checkbox" value="17"> 5 PM</label>
+                <label class="checkbox-label"><input type="checkbox" value="18"> 6 PM</label>
+                <label class="checkbox-label"><input type="checkbox" value="19"> 7 PM</label>
+                <label class="checkbox-label"><input type="checkbox" value="20"> 8 PM</label>
+                <label class="checkbox-label"><input type="checkbox" value="21"> 9 PM</label>
+                <label class="checkbox-label"><input type="checkbox" value="22"> 10 PM</label>
+                <label class="checkbox-label"><input type="checkbox" value="23"> 11 PM</label>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>Low Energy Mode</label>
+            <div class="radio-group">
+                <label class="radio-label">
+                    <input type="radio" name="low-energy-mode" value="push">
+                    💪 Push - Normal feedback even during crash times
+                </label>
+                <label class="radio-label">
+                    <input type="radio" name="low-energy-mode" value="gentle">
+                    🌸 Gentle - Extra kind messaging during crash times
+                </label>
+                <label class="radio-label">
+                    <input type="radio" name="low-energy-mode" value="skip">
+                    ⏭️ Skip - Don't bother me during crash times
+                </label>
+            </div>
+        </div>
+        
+        <button onclick="saveEnergySettings()" class="btn btn-primary">💾 Save Energy Settings</button>
+    </div>
+    
+    <div class="settings-section">
+        <h2>📱 Mobile App Access</h2>
+        <p class="section-description">Create API tokens for the mobile app to upload photos.</p>
+        
+        <div class="form-group">
+            <label for="token-name">Token Name</label>
+            <input type="text" id="token-name" placeholder="e.g., My iPhone" maxlength="50">
+        </div>
+        <button onclick="createApiToken()" class="btn btn-secondary">🔑 Create Token</button>
+        
+        <div id="token-display" class="token-display" style="display: none;">
+            <p><strong>Your new token (save this!):</strong></p>
+            <code id="new-token"></code>
+            <button onclick="copyToken()" class="btn btn-small">📋 Copy</button>
+        </div>
+        
+        <div id="tokens-list" class="tokens-list"></div>
+    </div>
+    
+    <div class="settings-section">
+        <h2>ℹ️ About</h2>
+        <p><strong>TwinSync Spot</strong> v1.0.3</p>
+        <p>Compare camera snapshots to YOUR description of how a space should look.</p>
+        <p>
+            <a href="https://github.com/polishn/twin-sync-addon-final" target="_blank">GitHub →</a>
+        </p>
+    </div>
+    
+    <div class="settings-section">
+        <h2>💰 API Costs</h2>
+        <p>TwinSync Spot uses the <strong>Gemini 2.0 Flash</strong> model.</p>
+        <p>Typical cost: ~$0.001 per check (image + text analysis)</p>
+        <p>Google offers a generous free tier for Gemini API.</p>
+    </div>
+</div>
+
+<style>
+.section-description {
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+}
+.settings-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+}
+.token-display {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 1rem;
+}
+.token-display code {
+    display: block;
+    background: var(--bg-secondary);
+    padding: 0.5rem;
+    border-radius: 4px;
+    margin: 0.5rem 0;
+    word-break: break-all;
+    font-family: monospace;
+}
+.tokens-list {
+    margin-top: 1rem;
+}
+.token-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.token-item:last-child {
+    border-bottom: none;
+}
+.token-name {
+    font-weight: 500;
+}
+.token-meta {
+    font-size: 0.85em;
+    color: var(--text-muted);
+}
+.form-select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+.radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.radio-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.radio-label:hover {
+    background: var(--bg-secondary);
+}
+.radio-label input[type="radio"] {
+    margin: 0;
+}
+.checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 0.5rem;
+}
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+.checkbox-label:hover {
+    background: var(--bg-secondary);
+}
+.checkbox-label input[type="checkbox"] {
+    margin: 0;
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const INGRESS_PATH = "{{ ingress_path }}";
+
+// Load current settings on page load
+async function loadSettings() {
+    try {
+        const settings = await api('/api/settings');
+
+        // Update status indicators
+        updateHAStatus(settings.has_ha_token);
+        updateGeminiStatus(settings.has_gemini_key);
+        
+        // Pre-fill HA URL if available
+        if (settings.ha_url) {
+            document.getElementById('ha-url').value = settings.ha_url;
+        }
+        
+        // Show masked placeholders for saved credentials
+        if (settings.has_ha_token) {
+            document.getElementById('ha-token').placeholder = '••••••••••••••••';
+        }
+        if (settings.has_gemini_key) {
+            document.getElementById('gemini-key').placeholder = '••••••••••••••••';
+        }
+        if (settings.has_huggingface_key) {
+            document.getElementById('huggingface-key').placeholder = '••••••••••••••••';
+        }
+        if (settings.has_deepai_key) {
+            document.getElementById('deepai-key').placeholder = '••••••••••••••••';
+        }
+        
+        // Load personality settings
+        if (settings.personality) {
+            document.getElementById('personality').value = settings.personality;
+        }
+        
+        // Load energy rhythm (default to 'normal' if not set)
+        const energyRhythm = settings.energy_rhythm || 'normal';
+        const rhythmRadio = document.querySelector(`input[name="energy-rhythm"][value="${energyRhythm}"]`);
+        if (rhythmRadio) rhythmRadio.checked = true;
+        
+        // Load crash times
+        if (settings.crash_times && settings.crash_times.length > 0) {
+            settings.crash_times.forEach(time => {
+                const checkbox = document.querySelector(`#crash-times-grid input[value="${time}"]`);
+                if (checkbox) checkbox.checked = true;
+            });
+        }
+        
+        // Load low energy mode (default to 'gentle' if not set)
+        const lowEnergyMode = settings.low_energy_mode || 'gentle';
+        const modeRadio = document.querySelector(`input[name="low-energy-mode"][value="${lowEnergyMode}"]`);
+        if (modeRadio) modeRadio.checked = true;
+        
+        // Load tokens
+        loadTokens();
+        
+        // Test connections
+        testConnections();
+        
+    } catch (err) {
+        console.error('Failed to load settings:', err);
+        // Set defaults on error
+        const defaultRhythm = document.querySelector('input[name="energy-rhythm"][value="normal"]');
+        if (defaultRhythm) defaultRhythm.checked = true;
+        const defaultMode = document.querySelector('input[name="low-energy-mode"][value="gentle"]');
+        if (defaultMode) defaultMode.checked = true;
+    }
+}
+
+function updateHAStatus(hasToken) {
+    const el = document.getElementById('ha-status');
+    if (hasToken) {
+        el.textContent = '✅ Token configured';
+        el.className = 'status-value status-ok';
+    } else {
+        el.textContent = '❌ No token';
+        el.className = 'status-value status-error';
+    }
+}
+
+function updateGeminiStatus(hasKey) {
+    const el = document.getElementById('gemini-status');
+    if (hasKey) {
+        el.textContent = '✅ API key configured';
+        el.className = 'status-value status-ok';
+    } else {
+        el.textContent = '❌ No API key';
+        el.className = 'status-value status-error';
+    }
+}
+
+async function saveAllSettings() {
+    const haUrl = document.getElementById('ha-url').value.trim();
+    const haToken = document.getElementById('ha-token').value.trim();
+    const geminiKey = document.getElementById('gemini-key').value.trim();
+    const huggingfaceKey = document.getElementById('huggingface-key').value.trim();
+    const replicateKey = document.getElementById('replicate-key').value.trim();
+    const deepaiKey = document.getElementById('deepai-key').value.trim();
+    
+    // Get personality setting
+    const personality = document.getElementById('personality').value;
+    
+    try {
+        const result = await api('/api/settings', {
+            method: 'POST',
+            body: JSON.stringify({
+                ha_url: haUrl || null,
+                ha_token: haToken || null,
+                gemini_api_key: geminiKey || null,
+                huggingface_api_key: huggingfaceKey || null,
+                replicate_api_key: replicateKey || null,
+                deepai_api_key: deepaiKey || null,
+                personality: personality
+            })
+        });
+        
+        showToast(result.message, 'success');
+        
+        // Clear sensitive fields
+        document.getElementById('ha-token').value = '';
+        document.getElementById('gemini-key').value = '';
+        document.getElementById('huggingface-key').value = '';
+        document.getElementById('replicate-key').value = '';
+        document.getElementById('deepai-key').value = '';
+        
+        // Refresh status
+        loadSettings();
+        
+    } catch (err) {
+        showToast('Failed to save settings: ' + err.message, 'error');
+    }
+}
+
+async function saveEnergySettings() {
+    const energyRhythm = document.querySelector('input[name="energy-rhythm"]:checked')?.value || 'normal';
+    const lowEnergyMode = document.querySelector('input[name="low-energy-mode"]:checked')?.value || 'gentle';
+    
+    // Get crash times
+    const crashTimeCheckboxes = document.querySelectorAll('#crash-times-grid input[type="checkbox"]:checked');
+    const crashTimes = Array.from(crashTimeCheckboxes).map(cb => cb.value);
+    
+    try {
+        const result = await api('/api/settings', {
+            method: 'POST',
+            body: JSON.stringify({
+                energy_rhythm: energyRhythm,
+                crash_times: crashTimes,
+                low_energy_mode: lowEnergyMode
+            })
+        });
+        
+        showToast('Energy settings saved!', 'success');
+        
+    } catch (err) {
+        showToast('Failed to save energy settings: ' + err.message, 'error');
+    }
+}
+
+async function testConnections() {
+    // Test HA connection
+    const haStatusEl = document.getElementById('ha-status');
+    const cameraCountEl = document.getElementById('camera-count');
+    haStatusEl.textContent = 'Testing...';
+    haStatusEl.className = 'status-value';
+    
+    try {
+        const haResult = await api('/api/settings/test-ha', { method: 'POST' });
+        if (haResult.success) {
+            haStatusEl.textContent = '✅ Connected';
+            haStatusEl.className = 'status-value status-ok';
+            cameraCountEl.textContent = haResult.camera_count || 0;
+        } else {
+            haStatusEl.textContent = '❌ ' + (haResult.message || 'Failed');
+            haStatusEl.className = 'status-value status-error';
+            cameraCountEl.textContent = '-';
+        }
+    } catch (err) {
+        haStatusEl.textContent = '❌ Connection failed';
+        haStatusEl.className = 'status-value status-error';
+        cameraCountEl.textContent = '-';
+    }
+    
+    // Test Gemini API
+    const geminiStatusEl = document.getElementById('gemini-status');
+    geminiStatusEl.textContent = 'Testing...';
+    geminiStatusEl.className = 'status-value';
+    
+    try {
+        const geminiResult = await api('/api/settings/test-gemini', { method: 'POST' });
+        if (geminiResult.success) {
+            geminiStatusEl.textContent = '✅ Valid';
+            geminiStatusEl.className = 'status-value status-ok';
+        } else {
+            geminiStatusEl.textContent = '❌ ' + (geminiResult.message || 'Invalid');
+            geminiStatusEl.className = 'status-value status-error';
+        }
+    } catch (err) {
+        geminiStatusEl.textContent = '❌ Test failed';
+        geminiStatusEl.className = 'status-value status-error';
+    }
+}
+
+async function createApiToken() {
+    const name = document.getElementById('token-name').value.trim();
+    if (!name) {
+        showToast('Please enter a token name', 'error');
+        return;
+    }
+    
+    try {
+        const result = await api('/api/auth/token', {
+            method: 'POST',
+            body: JSON.stringify({ name: name })
+        });
+        
+        // Show the token
+        document.getElementById('new-token').textContent = result.token;
+        document.getElementById('token-display').style.display = 'block';
+        document.getElementById('token-name').value = '';
+        
+        showToast('Token created! Save it securely.', 'success');
+        loadTokens();
+        
+    } catch (err) {
+        showToast('Failed to create token: ' + err.message, 'error');
+    }
+}
+
+function copyToken() {
+    const token = document.getElementById('new-token').textContent;
+    navigator.clipboard.writeText(token).then(() => {
+        showToast('Token copied to clipboard', 'success');
+    }).catch(() => {
+        showToast('Failed to copy', 'error');
+    });
+}
+
+async function loadTokens() {
+    try {
+        const result = await api('/api/auth/tokens');
+        const container = document.getElementById('tokens-list');
+        
+        if (!result.tokens || result.tokens.length === 0) {
+            container.innerHTML = '<p class="text-muted">No API tokens created yet.</p>';
+            return;
+        }
+        
+        container.innerHTML = result.tokens.map(token => `
+            <div class="token-item">
+                <div>
+                    <span class="token-name">${escapeHtml(token.name)}</span>
+                    <span class="token-meta">
+                        ${token.is_active ? '🟢 Active' : '🔴 Revoked'}
+                        ${token.last_used ? ' • Last used: ' + formatTime(token.last_used) : ' • Never used'}
+                    </span>
+                </div>
+                ${token.is_active ? `<button onclick="revokeToken(${token.id})" class="btn btn-small btn-danger">Revoke</button>` : ''}
+            </div>
+        `).join('');
+        
+    } catch (err) {
+        console.error('Failed to load tokens:', err);
+    }
+}
+
+async function revokeToken(tokenId) {
+    if (!confirm('Are you sure you want to revoke this token? It will no longer work.')) {
+        return;
+    }
+    
+    try {
+        await api(`/api/auth/tokens/${tokenId}`, { method: 'DELETE' });
+        showToast('Token revoked', 'success');
+        loadTokens();
+    } catch (err) {
+        showToast('Failed to revoke token: ' + err.message, 'error');
+    }
+}
+
+function formatTime(isoString) {
+    const date = new Date(isoString);
+    const now = new Date();
+    const diff = now - date;
+    
+    if (diff < 60000) return 'just now';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+    return date.toLocaleDateString();
+}
+
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+// Load settings on page load
+loadSettings();
+</script>
+{% endblock %}

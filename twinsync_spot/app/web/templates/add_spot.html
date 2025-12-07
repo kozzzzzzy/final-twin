@@ -1,0 +1,522 @@
+{% extends "base.html" %}
+
+{% block title %}Add Spot - TwinSync Spot{% endblock %}
+
+{% block content %}
+<style>
+/* Personality Picker Styles for Add Spot */
+.personality-picker-section {
+    margin-top: 0.5rem;
+}
+
+.personality-compact-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 0.75rem;
+}
+
+.personality-compact-card {
+    background: var(--color-bg);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.personality-compact-card:hover {
+    border-color: var(--color-text-muted);
+}
+
+.personality-compact-card.selected {
+    border-color: var(--color-primary);
+    background: rgba(45, 212, 191, 0.1);
+}
+
+.personality-compact-emoji {
+    font-size: 1.75rem;
+    margin-bottom: 0.25rem;
+}
+
+.personality-compact-name {
+    font-weight: 500;
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+}
+
+.personality-compact-quote {
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+    font-style: italic;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+/* Smart Suggestions Styles */
+.smart-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.suggestion-chip {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 20px;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--color-text-muted);
+}
+
+.suggestion-chip:hover {
+    border-color: var(--color-primary);
+    color: var(--color-text);
+}
+
+.suggestion-chip.selected {
+    background: rgba(45, 212, 191, 0.15);
+    border-color: var(--color-primary);
+    color: var(--color-text);
+}
+
+.suggestions-label {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    width: 100%;
+    margin-bottom: 0.25rem;
+}
+</style>
+
+<div class="page-header">
+    <h1>Add a New Spot</h1>
+</div>
+
+<form id="add-spot-form" class="form">
+    <div class="form-group">
+        <label for="name">Spot Name</label>
+        <input type="text" id="name" name="name" required placeholder="e.g., My Work Desk">
+    </div>
+    
+    <div class="form-group">
+        <label for="camera">Camera (Optional)</label>
+        <select id="camera" name="camera_entity" onchange="updateCameraPreview()">
+            <option value="">📤 No camera - Upload photos manually</option>
+        </select>
+        <small class="form-help">
+            <strong>Camera mode:</strong> Automatic checks using a Home Assistant camera<br>
+            <strong>Upload mode:</strong> Manually upload photos when you want to check your spot
+        </small>
+        <div id="camera-preview" class="camera-preview-container" style="display: none;">
+            <div class="camera-preview-loading">Loading preview...</div>
+        </div>
+        <button type="button" onclick="testCameraConnection()" class="btn btn-small btn-secondary" style="margin-top: 0.5rem;">🔍 Test Connection</button>
+    </div>
+    
+    <div id="initial-photo-section" class="form-group" style="display: none;">
+        <label>📷 Initial Photo (for Dream State)</label>
+        <small class="form-help" style="margin-bottom: 0.5rem; display: block;">Upload a photo of your space to generate a "dream state" visualization of how it could look when tidy!</small>
+        <div class="upload-zone" id="upload-zone">
+            <input type="file" id="initial-photo" accept="image/*" onchange="handleInitialPhoto(event)" style="display: none;">
+            <button type="button" onclick="document.getElementById('initial-photo').click()" class="btn btn-secondary">📁 Upload Photo</button>
+            <button type="button" onclick="captureInitialPhoto()" class="btn btn-secondary">📷 Take Photo</button>
+            <p style="font-size: 0.85rem; color: var(--color-text-muted); margin-top: 0.5rem;">This photo will be used to generate your dream state visualization</p>
+        </div>
+        <div id="initial-photo-preview" style="display: none; margin-top: 1rem;">
+            <img id="preview-image" style="max-width: 300px; border-radius: var(--radius);">
+            <p style="font-size: 0.85rem; color: var(--color-success); margin-top: 0.5rem;">✓ Photo ready! Dream state will be generated after creating the spot.</p>
+        </div>
+    </div>
+    
+    <div class="form-group">
+        <label for="spot_type">Spot Type</label>
+        <select id="spot_type" name="spot_type" onchange="updateTemplate()">
+            <option value="work">💼 Work / Focus Desk</option>
+            <option value="chill">🛋️ Chill / Relaxing Area</option>
+            <option value="sleep">🛏️ Sleep Zone</option>
+            <option value="kitchen">🍳 Kitchen</option>
+            <option value="entryway">🚪 Entryway / Hallway</option>
+            <option value="storage">📦 Storage Area</option>
+            <option value="custom" selected>✨ Custom</option>
+        </select>
+    </div>
+    
+    <div class="form-group">
+        <label for="definition">Additional notes or specific things you think you have problems with (optional)</label>
+        <textarea id="definition" name="definition" rows="6" placeholder="e.g., Coffee cups always pile up, papers get scattered..."></textarea>
+        <small class="form-help">💡 The AI will use common sense to check for typical tidiness issues. Add any specific problems you want to focus on.</small>
+        <div id="smart-suggestions" class="smart-suggestions" style="margin-top: 0.75rem;">
+            <!-- Smart suggestions populated by JavaScript based on spot type -->
+        </div>
+    </div>
+    
+    <div class="form-group">
+        <label>🎭 AI Personality</label>
+        <small class="form-help" style="margin-bottom: 0.5rem; display: block;">Choose how the AI talks to you about this spot</small>
+        <div id="personality-picker" class="personality-compact-grid personality-picker-section">
+            <!-- Populated by JS -->
+        </div>
+        <input type="hidden" id="personality" name="personality" value="">
+    </div>
+    
+    <div class="form-group">
+        <label>Voice</label>
+        <div id="voice-grid" class="voice-grid">
+            <!-- Populated by JS -->
+        </div>
+        <input type="hidden" id="voice" name="voice" value="supportive">
+    </div>
+    
+    <div id="custom-voice-group" class="form-group" style="display: none;">
+        <label for="custom_voice_prompt">Custom Voice Prompt</label>
+        <textarea id="custom_voice_prompt" name="custom_voice_prompt" rows="3" placeholder="How should I talk to you about this spot?"></textarea>
+    </div>
+    
+    <div class="form-actions">
+        <a href="{{ ingress_path + '/' if ingress_path else '/' }}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">Create Spot</button>
+    </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const INGRESS_PATH = "{{ ingress_path }}";
+let spotTemplates = {};
+let previewTimeout = null;
+let selectedPersonality = '';
+
+async function initAddSpotForm() {
+    // Load cameras
+    const cameraSelect = document.getElementById('camera');
+    try {
+        const data = await api('/api/cameras');
+        const noCameraOption = '<option value="">📤 No camera - Upload photos manually</option>';
+        if (data.cameras && data.cameras.length > 0) {
+            cameraSelect.innerHTML = noCameraOption + 
+                data.cameras.map(c => 
+                    `<option value="${c.entity_id}">${escapeHtml(c.name)} (${c.state})</option>`
+                ).join('');
+        } else {
+            cameraSelect.innerHTML = noCameraOption;
+        }
+    } catch (err) {
+        cameraSelect.innerHTML = '<option value="">📤 No camera - Upload photos manually</option>';
+    }
+    
+    // Load spot types/templates
+    try {
+        const data = await api('/api/spot-types');
+        data.types.forEach(t => {
+            spotTemplates[t.key] = t.template;
+        });
+        updateTemplate();
+    } catch (err) {
+        console.error('Failed to load templates:', err);
+    }
+    
+    // Load voices
+    try {
+        const data = await api('/api/voices');
+        const voiceGrid = document.getElementById('voice-grid');
+        voiceGrid.innerHTML = data.voices.map(v => `
+            <div class="voice-option ${v.key === 'supportive' ? 'selected' : ''}" 
+                 onclick="selectVoice('${v.key}')" data-voice="${v.key}">
+                <span class="voice-emoji">${v.emoji}</span>
+                <span class="voice-name">${v.name}</span>
+                <span class="voice-desc">${v.description}</span>
+            </div>
+        `).join('');
+    } catch (err) {
+        console.error('Failed to load voices:', err);
+    }
+    
+    // Load personalities
+    try {
+        const data = await api('/api/personalities');
+        const personalityPicker = document.getElementById('personality-picker');
+        personalityPicker.innerHTML = data.personalities.map(p => {
+            const quote = p.example_quote || '';
+            const truncatedQuote = quote.length > 50 ? quote.substring(0, 50) + '...' : quote;
+            return `
+            <div class="personality-compact-card" 
+                 onclick="selectPersonality('${p.key}')" data-personality="${p.key}">
+                <div class="personality-compact-emoji">${p.emoji}</div>
+                <div class="personality-compact-name">${p.name}</div>
+                <div class="personality-compact-quote">"${truncatedQuote}"</div>
+            </div>
+        `}).join('');
+    } catch (err) {
+        console.error('Failed to load personalities:', err);
+    }
+    
+    // Initialize smart suggestions for current spot type
+    updateSmartSuggestions(document.getElementById('spot_type').value);
+    
+    // Initialize initial photo section visibility (show when no camera selected)
+    const initialPhotoSection = document.getElementById('initial-photo-section');
+    if (cameraSelect && initialPhotoSection) {
+        initialPhotoSection.style.display = cameraSelect.value ? 'none' : 'block';
+    }
+}
+
+// Smart suggestions for each spot type
+const SPOT_SUGGESTIONS = {
+    work: ['📄 Papers/documents', '☕ Coffee cups/mugs', '🔌 Cable clutter', '📦 Random items', '🗑️ Trash/tissues', '📱 Devices charging'],
+    chill: ['🍽️ Dishes/cups', '📰 Magazines/papers', '🧥 Clothes', '📦 Random clutter', '🎮 Gaming stuff', '🧸 Toys'],
+    sleep: ['👕 Clothes on floor', '🛏️ Bed unmade', '📱 Devices on nightstand', '💊 Water/glasses', '📚 Books piled up'],
+    kitchen: ['🍽️ Dishes in sink', '🗑️ Trash overflow', '🍞 Food left out', '📦 Packages', '🧽 Cleaning supplies out', '📄 Mail/papers'],
+    entryway: ['👟 Shoes scattered', '🧥 Coats/bags', '📦 Packages', '🔑 Keys out of place', '📬 Mail pile', '☂️ Umbrellas'],
+    storage: ['📦 Boxes out of place', '🛍️ Shopping bags', '🧸 Items piling up', '🗃️ Things not in bins'],
+    custom: ['📦 General clutter', '🍽️ Dishes/cups', '📄 Papers', '👕 Clothes', '🗑️ Trash']
+};
+
+let selectedSuggestions = [];
+
+function updateTemplate() {
+    const spotType = document.getElementById('spot_type').value;
+    updateSmartSuggestions(spotType);
+}
+
+function updateSmartSuggestions(spotType) {
+    const container = document.getElementById('smart-suggestions');
+    const suggestions = SPOT_SUGGESTIONS[spotType] || SPOT_SUGGESTIONS.custom;
+    
+    // Reset selections when type changes
+    selectedSuggestions = [];
+    
+    container.innerHTML = `
+        <span class="suggestions-label">Common issues for this space (click to add):</span>
+        ${suggestions.map(s => `
+            <span class="suggestion-chip" onclick="toggleSuggestion(this, '${escapeHtml(s)}')">${escapeHtml(s)}</span>
+        `).join('')}
+    `;
+}
+
+function toggleSuggestion(chip, suggestion) {
+    const definition = document.getElementById('definition');
+    chip.classList.toggle('selected');
+    
+    if (chip.classList.contains('selected')) {
+        selectedSuggestions.push(suggestion);
+    } else {
+        selectedSuggestions = selectedSuggestions.filter(s => s !== suggestion);
+    }
+    
+    // Update the definition field with selected suggestions
+    if (selectedSuggestions.length > 0) {
+        const currentValue = definition.value.trim();
+        const suggestionsText = selectedSuggestions.join(', ');
+        
+        // Check if suggestions are already in the field
+        if (!currentValue.includes('Focus areas:')) {
+            if (currentValue) {
+                definition.value = currentValue + '\n\nFocus areas: ' + suggestionsText;
+            } else {
+                definition.value = 'Focus areas: ' + suggestionsText;
+            }
+        } else {
+            // Update the Focus areas line
+            definition.value = currentValue.replace(/Focus areas:.*$/m, 'Focus areas: ' + suggestionsText);
+        }
+    }
+}
+
+function selectVoice(voiceKey) {
+    document.querySelectorAll('.voice-option').forEach(el => {
+        el.classList.remove('selected');
+    });
+    document.querySelector(`[data-voice="${voiceKey}"]`).classList.add('selected');
+    document.getElementById('voice').value = voiceKey;
+    
+    // Show/hide custom voice input
+    document.getElementById('custom-voice-group').style.display = 
+        voiceKey === 'custom' ? 'block' : 'none';
+}
+
+function selectPersonality(personalityKey) {
+    selectedPersonality = personalityKey;
+    document.querySelectorAll('.personality-compact-card').forEach(el => {
+        el.classList.toggle('selected', el.dataset.personality === personalityKey);
+    });
+    document.getElementById('personality').value = personalityKey;
+}
+
+function updateCameraPreview() {
+    const cameraSelect = document.getElementById('camera');
+    const previewContainer = document.getElementById('camera-preview');
+    const initialPhotoSection = document.getElementById('initial-photo-section');
+    const entityId = cameraSelect.value;
+    
+    // Clear any pending preview request
+    if (previewTimeout) {
+        clearTimeout(previewTimeout);
+    }
+    
+    // Show/hide initial photo section based on camera selection
+    if (!entityId) {
+        previewContainer.style.display = 'none';
+        initialPhotoSection.style.display = 'block';  // Show when no camera
+        return;
+    } else {
+        initialPhotoSection.style.display = 'none';  // Hide when camera selected
+    }
+    
+    previewContainer.style.display = 'block';
+    previewContainer.innerHTML = '<div class="camera-preview-loading">📷 Loading preview...</div>';
+    
+    // Debounce the preview request
+    previewTimeout = setTimeout(async () => {
+        try {
+            // Use INGRESS_PATH for preview URL (can't use api() helper as it expects JSON)
+            const response = await fetch(`${INGRESS_PATH}/api/cameras/${encodeURIComponent(entityId)}/preview`);
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
+                previewContainer.innerHTML = `
+                    <div class="camera-preview-error">
+                        ❌ Preview unavailable: ${escapeHtml(errorData.detail || 'Could not load preview')}
+                    </div>
+                `;
+                return;
+            }
+            
+            const blob = await response.blob();
+            const imageUrl = URL.createObjectURL(blob);
+            
+            previewContainer.innerHTML = `
+                <img src="${imageUrl}" alt="Camera preview" class="camera-preview-image">
+                <p class="form-help" style="margin-top: 0.5rem;">This is what the camera sees right now</p>
+            `;
+        } catch (err) {
+            previewContainer.innerHTML = `
+                <div class="camera-preview-error">
+                    ❌ Could not load preview: ${escapeHtml(err.message)}
+                </div>
+            `;
+        }
+    }, 300);
+}
+
+// Initial photo handling
+let initialPhotoFile = null;
+
+function handleInitialPhoto(event) {
+    const file = event.target.files[0];
+    if (file && file.type.startsWith('image/')) {
+        initialPhotoFile = file;
+        showInitialPhotoPreview(file);
+    }
+}
+
+function captureInitialPhoto() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.capture = 'environment';
+    input.onchange = handleInitialPhoto;
+    input.click();
+}
+
+function showInitialPhotoPreview(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        document.getElementById('preview-image').src = e.target.result;
+        document.getElementById('initial-photo-preview').style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+}
+
+async function testCameraConnection() {
+    const cameraSelect = document.getElementById('camera');
+    const entityId = cameraSelect.value;
+    
+    if (!entityId) {
+        showToast('📤 In upload mode - no camera to test. You can upload photos manually when ready!', 'info');
+        return;
+    }
+    
+    showToast('Testing camera connection...', 'info');
+    
+    try {
+        const result = await api(`/api/cameras/${encodeURIComponent(entityId)}/test`);
+        
+        if (result.success) {
+            showToast(`✅ Camera working! Response time: ${Math.round(result.response_time_ms)}ms`, 'success');
+        } else {
+            const errorMsg = result.error ? result.error.message : 'Unknown error';
+            showToast(`❌ Camera test failed: ${errorMsg}`, 'error');
+        }
+    } catch (err) {
+        showToast('Test failed: ' + err.message, 'error');
+    }
+}
+
+document.getElementById('add-spot-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const data = {
+        name: formData.get('name'),
+        camera_entity: formData.get('camera_entity'),
+        definition: formData.get('definition'),
+        spot_type: formData.get('spot_type'),
+        voice: formData.get('voice'),
+        custom_voice_prompt: formData.get('custom_voice_prompt') || null,
+        personality: formData.get('personality') || null,
+    };
+    
+    try {
+        const result = await api('/api/spots', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+        
+        const spotId = result.id;
+        
+        // If we have an initial photo and no camera, upload it to trigger dream state generation
+        if (initialPhotoFile && !data.camera_entity) {
+            showToast('Spot created! Generating dream state...', 'success');
+            
+            try {
+                const uploadFormData = new FormData();
+                uploadFormData.append('image', initialPhotoFile);
+                
+                const uploadResponse = await fetch(`${INGRESS_PATH}/api/spots/${spotId}/upload-initial`, {
+                    method: 'POST',
+                    body: uploadFormData
+                });
+                
+                if (uploadResponse.ok) {
+                    showToast('Dream state generation started!', 'success');
+                } else {
+                    console.error('Initial photo upload failed');
+                }
+            } catch (uploadErr) {
+                console.error('Failed to upload initial photo:', uploadErr);
+            }
+        } else {
+            showToast('Spot created!', 'success');
+        }
+        
+        window.location.href = INGRESS_PATH + '/';
+    } catch (err) {
+        showToast('Failed to create spot: ' + err.message, 'error');
+    }
+});
+
+function escapeHtml(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+initAddSpotForm();
+</script>
+{% endblock %}
